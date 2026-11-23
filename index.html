@@ -824,8 +824,7 @@
     parsedEntities.forEach((ent, idx) => {
       const lname = ent.layer || '0';
       if (!layerStyles[lname]) {
-        const colorIdx = Object.keys(layerStyles).length % defaultPalette.length;
-        layerStyles[lname] = { visible: true, color: defaultPalette[colorIdx] };
+        layerStyles[lname] = { visible: true, color: '#ef4444' };
       }
       if (!layerGroups[lname]) {
         layerGroups[lname] = L.layerGroup();
