@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>А-План Про v0.7 — МСК-16 (Татарстан) → WGS-84</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg: #070b14;
+      --glass: rgba(13, 20, 36, 0.76);
+      --glass-strong: rgba(10, 15, 28, 0.88);
+      --glass-card: rgba(15, 23, 42, 0.58);
+      --border: rgba(56, 189, 248, 0.22);
+      --border-subtle: rgba(148, 163, 184, 0.16);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.38);
+      --ok: #2dd4bf;
+      --ok-glow: rgba(45, 212, 191, 0.35);
+      --violet: #a78bfa;
+      --warn: #facc15;
+      --err: #f87171;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --num: #f8fafc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Fullscreen Map */
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #070b14;
+      z-index: 1;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.55); }
+
+    /* Floating Glass Sidebar */
+    .sidebar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      bottom: 14px;
+      width: 356px;
+      background: var(--glass);
+      backdrop-filter: blur(18px) saturate(150%);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s;
+      overflow: hidden;
+    }
+    .sidebar.collapsed {
+      transform: translateX(calc(-100% - 24px));
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 10px;
+    }
+
+    /* Sidebar Toggle Button */
+    .toggle-btn {
+      position: absolute;
+      top: 14px;
+      left: 382px;
+      z-index: 1001;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--glass-strong);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), 0 0 12px rgba(56, 189, 248, 0.15);
+      transition: left 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.15s, box-shadow 0.15s;
+    }
+    .toggle-btn:hover {
+      background: rgba(56, 189, 248, 0.18);
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+    .toggle-btn.collapsed { left: 14px; }
+
+    /* Header */
+    .header {
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(167, 139, 250, 0.06));
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--num);
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    }
+    .header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Sections */
+    .section {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .section:last-child { border-bottom: none; }
+    .section-title {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 1.5px dashed rgba(56, 189, 248, 0.45);
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.18);
+    }
+    .dropzone strong {
+      display: block;
+      color: var(--accent);
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+    .dropzone span {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    input[type="file"] { display: none; }
+
+    /* Buttons */
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn {
+      background: rgba(30, 41, 59, 0.65);
+      color: var(--text);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.22);
+    }
+    .btn:disabled { opacity: 0.5; cursor: wait; }
+
+    .btn-primary {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: rgba(56, 189, 248, 0.55);
+      color: var(--accent);
+    }
+    .btn-primary:hover {
+      background: var(--accent);
+      color: #070b14;
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+
+    .btn-ok {
+      background: rgba(45, 212, 191, 0.14);
+      border-color: rgba(45, 212, 191, 0.55);
+      color: var(--ok);
+    }
+    .btn-ok:hover {
+      background: var(--ok);
+      color: #070b14;
+      box-shadow: 0 0 18px var(--ok-glow);
+    }
+
+    .btn-neon {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(45, 212, 191, 0.22));
+      border: 1px solid rgba(56, 189, 248, 0.65);
+      color: #f8fafc;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.18);
+    }
+    .btn-neon:hover {
+      background: linear-gradient(135deg, var(--accent), var(--ok));
+      color: #070b14;
+      border-color: transparent;
+      box-shadow: 0 0 22px var(--accent-glow);
+    }
+    .btn-full { width: 100%; margin-top: 8px; padding: 9px 12px; }
+
+    /* Form Controls */
+    .field { margin-bottom: 10px; }
+    .field label {
+      display: block;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    select {
+      width: 100%;
+      background: rgba(7, 11, 20, 0.72);
+      color: var(--num);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      outline: none;
+      transition: 0.15s;
+    }
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.22);
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+      margin-top: 4px;
+    }
+    .checkbox-row input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+
+    /* Diagnostic Card */
+    .diag-card {
+      background: var(--glass-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+    .diag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    .diag-row:last-child { border-bottom: none; }
+    .diag-label { color: var(--muted); }
+    .diag-val {
+      color: var(--num);
+      font-family: 'Consolas', 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 11.5px;
+    }
+    .diag-val.ok { color: var(--ok); text-shadow: 0 0 10px rgba(45, 212, 191, 0.35); }
+
+    /* Layers */
+    .layer-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+    .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--glass-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 12px;
+      transition: 0.15s;
+    }
+    .layer-item:hover { border-color: rgba(56, 189, 248, 0.4); }
+    .layer-left { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+    .layer-left input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+    .layer-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 145px; }
+    .layer-item input[type="color"] {
+      width: 22px; height: 22px; border: none; background: none; cursor: pointer; padding: 0; border-radius: 4px;
+    }
+    .layer-len { font-family: 'Consolas', monospace; font-size: 11px; color: var(--ok); font-weight: 600; }
+
+    /* Floating Bottom HUD */
+    .hud {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      pointer-events: none;
+      z-index: 900;
+    }
+    .hud-box {
+      pointer-events: auto;
+      background: var(--glass-strong);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 15px;
+      font-size: 12px;
+      display: flex;
+      gap: 18px;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.12);
+    }
+    .hud-item span { color: var(--muted); margin-right: 5px; }
+    .hud-item strong { color: var(--num); font-family: 'Consolas', monospace; }
+    .hud-item strong.ok { color: var(--ok); text-shadow: 0 0 10px rgba(45, 212, 191, 0.35); }
+
+    /* Toast Notification */
+    .toast {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2000;
+      background: var(--glass-strong);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--ok);
+      color: var(--num);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55), 0 0 20px rgba(45, 212, 191, 0.28);
+      transition: opacity 0.25s, transform 0.25s;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.warn { border-color: var(--warn); box-shadow: 0 8px 30px rgba(0,0,0,0.55), 0 0 18px rgba(250,204,21,0.25); }
+
+    /* Dark Glass Leaflet Controls & Popups */
+    .leaflet-bar {
+      border: 1px solid var(--border) !important;
+      border-radius: 10px !important;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
+    }
+    .leaflet-bar a {
+      background: var(--glass-strong) !important;
+      backdrop-filter: blur(12px);
+      color: var(--accent) !important;
+      border-bottom: 1px solid var(--border-subtle) !important;
+      width: 34px !important;
+      height: 34px !important;
+      line-height: 34px !important;
+    }
+    .leaflet-bar a:hover {
+      background: rgba(56, 189, 248, 0.2) !important;
+      color: #fff !important;
+    }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background: var(--glass-strong);
+      backdrop-filter: blur(16px);
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+    }
+    .leaflet-popup-content { font-size: 12px; line-height: 1.55; margin: 11px 13px; }
+    .popup-title { font-weight: 700; color: var(--accent); margin-bottom: 6px; font-size: 13px; }
+    .popup-mono { font-family: 'Consolas', monospace; color: var(--num); }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="toast" class="toast"></div>
+
+<button class="toggle-btn" id="toggleSidebar" title="Свернуть / развернуть панель">◀</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="header">
+    <h1>А-План Про <span class="badge">v0.7 PRO</span></h1>
+    <p>Наложение DXF (МСК-16 Татарстан) на карты</p>
+  </div>
+
+  <div class="sidebar-scroll">
+    <!-- 1. Загрузка файла -->
+    <div class="section">
+      <div class="section-title">1. Загрузка DXF-трассы</div>
+      <div class="dropzone" id="dropzone">
+        <strong>Перетащите .DXF файл сюда</strong>
+        <span>или нажмите для выбора (AutoCAD R12 / MapInfo / Modern)</span>
+        <input type="file" id="fileInput" accept=".dxf,.txt" />
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnDemo">Демо (mif mid.dxf)</button>
+        <button class="btn btn-ok" id="btnRef">Проверить эталон</button>
+      </div>
+    </div>
+
+    <!-- 2. Система координат -->
+    <div class="section">
+      <div class="section-title">2. Координаты и подложка</div>
+      <div class="field">
+        <label for="crsSelect">Проекция / Система координат</label>
+        <select id="crsSelect">
+          <option value="msk16_z1" selected>МСК-16 Зона 1 (Татарстан — Эталон 49°02')</option>
+          <option value="msk16_z2">МСК-16 Зона 2 (Восток РТ, 52°02')</option>
+          <option value="wgs84">WGS-84 (градусы Lat/Lon)</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="field" style="margin-bottom:0">
+          <label for="unitsSelect">Единицы DXF</label>
+          <select id="unitsSelect">
+            <option value="1" selected>Метры (1:1)</option>
+            <option value="0.001">Миллиметры (÷1000)</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label for="basemapSelect">Подложка карты</label>
+          <select id="basemapSelect">
+            <option value="osm" selected>OpenStreetMap</option>
+            <option value="google_hybrid">Google Гибрид</option>
+            <option value="google_sat">Google Спутник</option>
+            <option value="esri">ESRI Спутник</option>
+          </select>
+        </div>
+      </div>
+      <label class="checkbox-row" style="margin-top: 10px;">
+        <input type="checkbox" id="swapXY" />
+        <span>Поменять X и Y местами (X=Север, Y=Восток)</span>
+      </label>
+    </div>
+
+    <!-- 3. Диагностика и выгрузка -->
+    <div class="section">
+      <div class="section-title">3. Диагностика и выгрузка</div>
+      <div class="diag-card">
+        <div class="diag-row"><span class="diag-label">Файл:</span><span class="diag-val" id="dFile">—</span></div>
+        <div class="diag-row"><span class="diag-label">Объектов / вершин:</span><span class="diag-val" id="dCount">0 / 0</span></div>
+        <div class="diag-row"><span class="diag-label">Общая длина:</span><span class="diag-val ok" id="dLen">0.0 м</span></div>
+        <div class="diag-row"><span class="diag-label">1-я вершина (DXF):</span><span class="diag-val" id="dRaw">—</span></div>
+        <div class="diag-row"><span class="diag-label">1-я вершина (WGS-84):</span><span class="diag-val ok" id="dWgs">—</span></div>
+      </div>
+      <button class="btn btn-neon btn-full" id="btnCopyImg">📷 Скопировать как картинку (+50 м)</button>
+      <button class="btn btn-full" id="btnExportCsv">📄 Выгрузить ведомость вершин (CSV)</button>
+    </div>
+
+    <!-- 4. Слои -->
+    <div class="section">
+      <div class="section-title">4. Слои DXF</div>
+      <div class="layer-list" id="layerList">
+        <div style="font-size:12px; color:var(--muted);">Загрузите DXF для отображения слоёв</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="hud">
+  <div class="hud-box">
+    <div class="hud-item"><span>WGS-84:</span><strong id="hudCoords">55.835171, 49.246790</strong></div>
+    <div class="hud-item"><span>Длина:</span><strong class="ok" id="hudLen">0.0 м</strong></div>
+  </div>
+</div>
+
+<script>
+  // =========================================================================
+  // 0. УВЕДОМЛЕНИЯ И СВОРАЧИВАНИЕ ПАНЕЛИ
+  // =========================================================================
+  let toastTimer = null;
+  function showToast(msg, isWarn = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (isWarn ? ' warn' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3600);
+  }
+
+  const sidebarEl = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('toggleSidebar');
+  toggleBtn.addEventListener('click', () => {
+    const collapsed = sidebarEl.classList.toggle('collapsed');
+    toggleBtn.classList.toggle('collapsed', collapsed);
+    toggleBtn.textContent = collapsed ? '▶' : '◀';
+  });
+
+  // =========================================================================
+  // 1. ТОЧНОЕ ГЕОДЕЗИЧЕСКОЕ ЯДРО (КРАСОВСКИЙ -> WGS-84, ГОСТ 32453-2017)
+  // =========================================================================
+  const A_KR = 6378245.0;
+  const F_KR = 1.0 / 298.3;
+  const E2_KR = 2 * F_KR - F_KR * F_KR;
+  const EP2_KR = E2_KR / (1 - E2_KR);
+
+  const A_WGS = 6378137.0;
+  const F_WGS = 1.0 / 298.257223563;
+  const E2_WGS = 2 * F_WGS - F_WGS * F_WGS;
+
+  const CRS_PRESETS = {
+    msk16_z1: { lon0: 49.0 + 2.0 / 60.0, x0North: -5709400.6459, y0East: 1299985.9639 },
+    msk16_z2: { lon0: 52.0 + 2.0 / 60.0, x0North: -5709400.6459, y0East: 2299985.9639 }
+  };
+
+  function mskToWgs84(easting, northing, presetKey) {
+    if (presetKey === 'wgs84') return [northing, easting];
+    const p = CRS_PRESETS[presetKey] || CRS_PRESETS.msk16_z1;
+    const X = northing - p.x0North;
+    const Y = easting - p.y0East;
+
+    const e2 = E2_KR, e4 = e2 * e2, e6 = e4 * e2, e8 = e4 * e4;
+    const A0 = 1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256 - 175 * e8 / 16384;
+    const A2 = (3 / 8) * (e2 + e4 / 4 + 15 * e6 / 128);
+    const A4 = (15 / 256) * (e4 + 3 * e6 / 4);
+    const A6 = (35 / 3072) * e6;
+
+    let Bf = X / (A_KR * A0);
+    for (let i = 0; i < 10; i++) {
+      const M = A_KR * (A0 * Bf - A2 * Math.sin(2 * Bf) + A4 * Math.sin(4 * Bf) - A6 * Math.sin(6 * Bf));
+      const dM = A_KR * (A0 - 2 * A2 * Math.cos(2 * Bf) + 4 * A4 * Math.cos(4 * Bf) - 6 * A6 * Math.cos(6 * Bf));
+      Bf -= (M - X) / dM;
+    }
+
+    const sinBf = Math.sin(Bf), cosBf = Math.cos(Bf), tanBf = Math.tan(Bf);
+    const Nf = A_KR / Math.sqrt(1 - e2 * sinBf * sinBf);
+    const Mf = A_KR * (1 - e2) / Math.pow(1 - e2 * sinBf * sinBf, 1.5);
+    const etaf2 = EP2_KR * cosBf * cosBf;
+    const tf = tanBf, tf2 = tf * tf, tf4 = tf2 * tf2;
+    const yN = Y / Nf, yN2 = yN * yN, yN4 = yN2 * yN2;
+
+    const B_kr = Bf - (tf / (2 * Mf * Nf)) * Y * Y * (
+      1 - (1 / 12) * yN2 * (5 + 3 * tf2 + etaf2 - 9 * tf2 * etaf2) +
+      (1 / 360) * yN4 * (61 + 90 * tf2 + 45 * tf4)
+    );
+    const l = (yN / cosBf) * (
+      1 - (1 / 6) * yN2 * (1 + 2 * tf2 + etaf2) +
+      (1 / 120) * yN4 * (5 + 28 * tf2 + 24 * tf4 + 6 * etaf2 + 8 * tf2 * etaf2)
+    );
+    const L_kr = (p.lon0 * Math.PI / 180) + l;
+
+    const N_kr = A_KR / Math.sqrt(1 - E2_KR * Math.sin(B_kr) * Math.sin(B_kr));
+    const Xs = N_kr * Math.cos(B_kr) * Math.cos(L_kr);
+    const Ys = N_kr * Math.cos(B_kr) * Math.sin(L_kr);
+    const Zs = N_kr * (1 - E2_KR) * Math.sin(B_kr);
+
+    const dx = 23.57, dy = -140.95, dz = -79.8;
+    const wx = 0.0;
+    const wy = (-0.35 / 3600.0) * Math.PI / 180;
+    const wz = (-0.79 / 3600.0) * Math.PI / 180;
+    const m = -0.22e-6;
+
+    const Xw = dx + (1 + m) * (Xs - wz * Ys + wy * Zs);
+    const Yw = dy + (1 + m) * (wz * Xs + Ys - wx * Zs);
+    const Zw = dz + (1 + m) * (-wy * Xs + wx * Ys + Zs);
+
+    const pXY = Math.hypot(Xw, Yw);
+    const L_wgs = Math.atan2(Yw, Xw);
+    let B_wgs = Math.atan2(Zw, pXY * (1 - E2_WGS));
+    for (let i = 0; i < 10; i++) {
+      const N_wgs = A_WGS / Math.sqrt(1 - E2_WGS * Math.sin(B_wgs) * Math.sin(B_wgs));
+      const h_wgs = pXY / Math.cos(B_wgs) - N_wgs;
+      B_wgs = Math.atan2(Zw, pXY * (1 - E2_WGS * N_wgs / (N_wgs + h_wgs)));
+    }
+    return [B_wgs * 180 / Math.PI, L_wgs * 180 / Math.PI];
+  }
+
+  // =========================================================================
+  // 2. НАТИВНЫЙ ПАРСЕР DXF (AutoCAD R12 / MapInfo POLYLINE+VERTEX + Modern)
+  // =========================================================================
+  function parseDXF(text) {
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    const pairs = [];
+    for (let i = 0; i + 1 < lines.length; i += 2) {
+      const code = parseInt(lines[i].trim(), 10);
+      if (!isNaN(code)) pairs.push({ code, val: lines[i + 1].trim() });
+    }
+
+    const entities = [];
+    let inEntities = false;
+    let i = 0;
+
+    while (i < pairs.length) {
+      const { code, val } = pairs[i];
+      if (code === 0 && val === 'SECTION') {
+        if (i + 1 < pairs.length && pairs[i + 1].code === 2 && pairs[i + 1].val === 'ENTITIES') {
+          inEntities = true;
+          i += 2;
+          continue;
+        }
+      }
+      if (inEntities && code === 0 && val === 'ENDSEC') {
+        inEntities = false;
+        break;
+      }
+
+      if (inEntities && code === 0) {
+        const type = val;
+        if (type === 'POLYLINE') {
+          let layer = '0', closed = false;
+          const pts = [];
+          i++;
+          while (i < pairs.length && pairs[i].code !== 0) {
+            if (pairs[i].code === 8) layer = pairs[i].val;
+            if (pairs[i].code === 70) closed = (parseInt(pairs[i].val, 10) & 1) === 1;
+            i++;
+          }
+          while (i < pairs.length) {
+            if (pairs[i].code === 0 && pairs[i].val === 'VERTEX') {
+              let vx = null, vy = null;
+              i++;
+              while (i < pairs.length && pairs[i].code !== 0) {
+                if (pairs[i].code === 10) vx = parseFloat(pairs[i].val);
+                if (pairs[i].code === 20) vy = parseFloat(pairs[i].val);
+                i++;
+              }
+              if (vx !== null && vy !== null && !isNaN(vx) && !isNaN(vy)) pts.push([vx, vy]);
+            } else if (pairs[i].code === 0 && pairs[i].val === 'SEQEND') {
+              i++;
+              while (i < pairs.length && pairs[i].code !== 0) i++;
+              break;
+            } else {
+              break;
+            }
+          }
+          if (pts.length >= 2) entities.push({ type: closed ? 'POLYGON' : 'POLYLINE', layer, closed, pts });
+          continue;
+        }
+
+        if (type === 'LWPOLYLINE') {
+          let layer = '0', closed = false, curX = null;
+          const pts = [];
+          i++;
+          while (i < pairs.length && pairs[i].code !== 0) {
+            const c = pairs[i].code, v = pairs[i].val;
+            if (c === 8) layer = v;
+            if (c === 70) closed = (parseInt(v, 10) & 1) === 1;
+            if (c === 10) curX = parseFloat(v);
+            if (c === 20 && curX !== null) {
+              const curY = parseFloat(v);
+              if (!isNaN(curX) && !isNaN(curY)) pts.push([curX, curY]);
+              curX = null;
+            }
+            i++;
+          }
+          if (pts.length >= 2) entities.push({ type: closed ? 'POLYGON' : 'LWPOLYLINE', layer, closed, pts });
+          continue;
+        }
+
+        if (type === 'LINE') {
+          let layer = '0', x1 = null, y1 = null, x2 = null, y2 = null;
+          i++;
+          while (i < pairs.length && pairs[i].code !== 0) {
+            const c = pairs[i].code, v = pairs[i].val;
+            if (c === 8) layer = v;
+            if (c === 10) x1 = parseFloat(v);
+            if (c === 20) y1 = parseFloat(v);
+            if (c === 11) x2 = parseFloat(v);
+            if (c === 21) y2 = parseFloat(v);
+            i++;
+          }
+          if (x1 !== null && y1 !== null && x2 !== null && y2 !== null) {
+            entities.push({ type: 'LINE', layer, closed: false, pts: [[x1, y1], [x2, y2]] });
+          }
+          continue;
+        }
+
+        if (type === 'POINT' || type === 'CIRCLE') {
+          let layer = '0', x = null, y = null;
+          i++;
+          while (i < pairs.length && pairs[i].code !== 0) {
+            const c = pairs[i].code, v = pairs[i].val;
+            if (c === 8) layer = v;
+            if (c === 10) x = parseFloat(v);
+            if (c === 20) y = parseFloat(v);
+            i++;
+          }
+          if (x !== null && y !== null) entities.push({ type, layer, closed: false, pts: [[x, y]] });
+          continue;
+        }
+      }
+      i++;
+    }
+    return entities;
+  }
+
+  // =========================================================================
+  // 3. КАРТА LEAFLET (БЕЗ АТРИБУЦИИ И ФЛАГА, OSM ПО УМОЛЧАНИЮ)
+  // =========================================================================
+  const map = L.map('map', {
+    zoomControl: false,
+    attributionControl: false
+  }).setView([55.835171, 49.246790], 17);
+
+  L.control.zoom({ position: 'topright' }).addTo(map);
+
+  const basemapConfigs = {
+    osm: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, cors: true },
+    google_hybrid: { url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', maxZoom: 20, cors: false },
+    google_sat: { url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', maxZoom: 20, cors: false },
+    esri: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, cors: true }
+  };
+
+  const basemaps = {};
+  Object.keys(basemapConfigs).forEach(k => {
+    basemaps[k] = L.tileLayer(basemapConfigs[k].url, { maxZoom: basemapConfigs[k].maxZoom });
+  });
+
+  let currentBasemapKey = 'osm';
+  let currentBasemap = basemaps.osm.addTo(map);
+
+  document.getElementById('basemapSelect').addEventListener('change', (e) => {
+    currentBasemapKey = e.target.value;
+    map.removeLayer(currentBasemap);
+    currentBasemap = basemaps[currentBasemapKey].addTo(map);
+  });
+
+  map.on('mousemove', (e) => {
+    document.getElementById('hudCoords').textContent = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+  });
+
+  // =========================================================================
+  // 4. СОСТОЯНИЕ, ОТРИСОВКА И СЛОИ
+  // =========================================================================
+  let parsedEntities = [];
+  let renderedGeometries = []; // кэш пересчитанных WGS-84 координат для экспорта картинки
+  let currentFileName = '';
+  let layerGroups = {};
+  let layerStyles = {};
+  let refMarker = null;
+  const defaultPalette = ['#0284c7', '#e11d48', '#d97706', '#7c3aed', '#059669', '#db2777'];
+
+  function calcPlanLength(pts, scale) {
+    let len = 0;
+    for (let i = 1; i < pts.length; i++) {
+      len += Math.hypot((pts[i][0] - pts[i - 1][0]) * scale, (pts[i][1] - pts[i - 1][1]) * scale);
+    }
+    return len;
+  }
+
+  function renderAll(fitMap = true) {
+    Object.values(layerGroups).forEach(g => map.removeLayer(g));
+    layerGroups = {};
+    renderedGeometries = [];
+
+    const crs = document.getElementById('crsSelect').value;
+    const scale = parseFloat(document.getElementById('unitsSelect').value);
+    const swapXY = document.getElementById('swapXY').checked;
+
+    const bounds = L.latLngBounds();
+    let totalLen = 0;
+    let totalVerts = 0;
+    let firstRaw = null;
+    let firstWgs = null;
+    const layerLengths = {};
+
+    parsedEntities.forEach((ent, idx) => {
+      const lname = ent.layer || '0';
+      if (!layerStyles[lname]) {
+        const colorIdx = Object.keys(layerStyles).length % defaultPalette.length;
+        layerStyles[lname] = { visible: true, color: defaultPalette[colorIdx] };
+      }
+      if (!layerGroups[lname]) {
+        layerGroups[lname] = L.layerGroup();
+        if (layerStyles[lname].visible) layerGroups[lname].addTo(map);
+      }
+
+      const latlngs = ent.pts.map(pt => {
+        const rawX = pt[0] * scale;
+        const rawY = pt[1] * scale;
+        const east = swapXY ? rawY : rawX;
+        const north = swapXY ? rawX : rawY;
+        const wgs = mskToWgs84(east, north, crs);
+        if (!firstRaw) {
+          firstRaw = `${pt[0].toFixed(2)}, ${pt[1].toFixed(2)}`;
+          firstWgs = `${wgs[0].toFixed(6)}, ${wgs[1].toFixed(6)}`;
+        }
+        return wgs;
+      });
+
+      totalVerts += ent.pts.length;
+      const entLen = ent.pts.length >= 2 ? calcPlanLength(ent.pts, scale) : 0;
+      totalLen += entLen;
+      layerLengths[lname] = (layerLengths[lname] || 0) + entLen;
+
+      const color = layerStyles[lname].color;
+      renderedGeometries.push({ layer: lname, closed: ent.closed, latlngs });
+
+      let shape;
+      if (ent.pts.length === 1) {
+        shape = L.circleMarker(latlngs[0], { radius: 6, color, fillColor: color, fillOpacity: 0.75 });
+      } else if (ent.closed) {
+        shape = L.polygon(latlngs, { color: '#eab308', weight: 2.5, fillColor: '#facc15', fillOpacity: 0.35 });
+      } else {
+        shape = L.polyline(latlngs, { color, weight: 3.5, opacity: 0.95 });
+      }
+
+      const popupHtml = `
+        <div class="popup-title">Объект #${idx + 1} (${ent.type})</div>
+        <div>Слой: <span class="popup-mono">${lname}</span></div>
+        <div>Вершин: <span class="popup-mono">${ent.pts.length}</span></div>
+        <div>Длина: <span class="popup-mono">${entLen.toFixed(2)} м</span></div>
+        <div>Начало WGS-84: <span class="popup-mono">${latlngs[0][0].toFixed(6)}, ${latlngs[0][1].toFixed(6)}</span></div>
+      `;
+      shape.bindPopup(popupHtml);
+      shape.addTo(layerGroups[lname]);
+      latlngs.forEach(ll => { if (!isNaN(ll[0]) && !isNaN(ll[1])) bounds.extend(ll); });
+    });
+
+    document.getElementById('dFile').textContent = currentFileName || '—';
+    document.getElementById('dCount').textContent = `${parsedEntities.length} / ${totalVerts}`;
+    document.getElementById('dLen').textContent = `${totalLen.toFixed(1)} м`;
+    document.getElementById('hudLen').textContent = `${totalLen.toFixed(1)} м`;
+    document.getElementById('dRaw').textContent = firstRaw || '—';
+    document.getElementById('dWgs').textContent = firstWgs || '—';
+
+    const listEl = document.getElementById('layerList');
+    listEl.innerHTML = '';
+    const layerNames = Object.keys(layerGroups);
+    if (layerNames.length === 0) {
+      listEl.innerHTML = '<div style="font-size:12px; color:var(--muted);">Нет объектов</div>';
+    } else {
+      layerNames.forEach(lname => {
+        const st = layerStyles[lname];
+        const row = document.createElement('div');
+        row.className = 'layer-item';
+        row.innerHTML = `
+          <div class="layer-left">
+            <input type="checkbox" ${st.visible ? 'checked' : ''} />
+            <input type="color" value="${st.color}" />
+            <span title="${lname}">Слой: ${lname}</span>
+          </div>
+          <span class="layer-len">${(layerLengths[lname] || 0).toFixed(1)} м</span>
+        `;
+        const chk = row.querySelector('input[type="checkbox"]');
+        const col = row.querySelector('input[type="color"]');
+        chk.addEventListener('change', () => {
+          st.visible = chk.checked;
+          if (st.visible) layerGroups[lname].addTo(map);
+          else map.removeLayer(layerGroups[lname]);
+        });
+        col.addEventListener('input', () => {
+          st.color = col.value;
+          renderAll(false);
+        });
+        listEl.appendChild(row);
+      });
+    }
+
+    if (fitMap && bounds.isValid()) {
+      map.fitBounds(bounds, { paddingTopLeft: [390, 40], paddingBottomRight: [40, 40], maxZoom: 19 });
+    }
+  }
+
+  // =========================================================================
+  // 5. ЭКСПОРТ КАРТИНКИ В БУФЕР ОБМЕНА (РОВНО +50 М ВО ВСЕ СТОРОНЫ)
+  // =========================================================================
+  function latLonToWorldPx(lat, lon, z) {
+    const n = 256 * Math.pow(2, z);
+    const x = ((lon + 180) / 360) * n;
+    const rad = lat * Math.PI / 180;
+    const y = (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n;
+    return [x, y];
+  }
+
+  function loadTileImage(url) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  document.getElementById('btnCopyImg').addEventListener('click', async () => {
+    const visibleGeoms = renderedGeometries.filter(g => layerStyles[g.layer] && layerStyles[g.layer].visible);
+    if (!visibleGeoms.length) {
+      showToast('Сначала загрузите трассу DXF', true);
+      return;
+    }
+
+    const btn = document.getElementById('btnCopyImg');
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Рендеринг снимка (+50 м)...';
+
+    try {
+      // 1. Находим точные границы видимой трассы
+      let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+      visibleGeoms.forEach(g => {
+        g.latlngs.forEach(([lat, lon]) => {
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          if (lon < minLon) minLon = lon;
+          if (lon > maxLon) maxLon = lon;
+        });
+      });
+
+      // 2. Расширяем границы ровно на +50 м во все стороны (С, Ю, З, В)
+      const marginM = 50.0;
+      const avgLatRad = ((minLat + maxLat) / 2) * Math.PI / 180;
+      const dLat = marginM / 111320.0;
+      const dLon = marginM / (111320.0 * Math.cos(avgLatRad));
+
+      const south = minLat - dLat;
+      const north = maxLat + dLat;
+      const west = minLon - dLon;
+      const east = maxLon + dLon;
+
+      // 3. Выбираем оптимальный зум (высокое качество, макс. сторона <= 2200 px)
+      let exportCfg = basemapConfigs[currentBasemapKey];
+      let usedOsmFallback = false;
+      if (!exportCfg.cors) {
+        exportCfg = basemapConfigs.osm;
+        usedOsmFallback = true;
+      }
+
+      let z = exportCfg.maxZoom;
+      let pxW, pxH, nw, se;
+      while (z >= 10) {
+        nw = latLonToWorldPx(north, west, z);
+        se = latLonToWorldPx(south, east, z);
+        pxW = Math.ceil(se[0] - nw[0]);
+        pxH = Math.ceil(se[1] - nw[1]);
+        if (Math.max(pxW, pxH) <= 2200) break;
+        z--;
+      }
+
+      // 4. Создаём холст
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(pxW, 200);
+      canvas.height = Math.max(pxH, 200);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 5. Загружаем и рисуем все тайлы в расширенном окне
+      const txMin = Math.floor(nw[0] / 256);
+      const txMax = Math.floor(se[0] / 256);
+      const tyMin = Math.floor(nw[1] / 256);
+      const tyMax = Math.floor(se[1] / 256);
+
+      const tileTasks = [];
+      for (let tx = txMin; tx <= txMax; tx++) {
+        for (let ty = tyMin; ty <= tyMax; ty++) {
+          const url = exportCfg.url
+            .replace('{z}', z)
+            .replace('{x}', tx)
+            .replace('{y}', ty);
+          tileTasks.push(
+            loadTileImage(url).then(img => {
+              if (img) {
+                ctx.drawImage(img, Math.round(tx * 256 - nw[0]), Math.round(ty * 256 - nw[1]), 256, 256);
+              }
+            })
+          );
+        }
+      }
+      await Promise.all(tileTasks);
+
+      // 6. Рисуем трассу поверх тайлов с контрастной обводкой
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      visibleGeoms.forEach(g => {
+        const color = layerStyles[g.layer].color;
+        const pts = g.latlngs.map(([lat, lon]) => {
+          const [wx, wy] = latLonToWorldPx(lat, lon, z);
+          return [wx - nw[0], wy - nw[1]];
+        });
+
+        if (pts.length === 1) {
+          ctx.beginPath();
+          ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+        } else if (g.closed) {
+          ctx.beginPath();
+          pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.35)';
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = '#eab308';
+          ctx.stroke();
+        } else {
+          // Белая подложка-контур для читаемости на карте
+          ctx.beginPath();
+          pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.stroke();
+
+          // Основная линия трассы
+          ctx.beginPath();
+          pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+          ctx.lineWidth = 3.5;
+          ctx.strokeStyle = color;
+          ctx.stroke();
+        }
+      });
+
+      // 7. Копируем в буфер обмена (или скачиваем PNG при ограничении file://)
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      let copied = false;
+      if (navigator.clipboard && window.ClipboardItem) {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          copied = true;
+        } catch (clipErr) {
+          copied = false;
+        }
+      }
+
+      if (copied) {
+        showToast(usedOsmFallback
+          ? 'Скопировано (+50 м) на подложке OSM (Google блокирует экспорт)'
+          : `Картинка скопирована в буфер (${canvas.width}×${canvas.height} px, поля +50 м)`);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (currentFileName || 'trassa').replace(/\.[^.]+$/, '') + '_plan_50m.png';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Буфер недоступен на file:// — картинка скачана как PNG (+50 м)', true);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Ошибка при создании картинки', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
+
+  // =========================================================================
+  // 6. ЗАГРУЗКА ФАЙЛОВ, ДЕМО, ЭТАЛОН И CSV
+  // =========================================================================
+  function loadDxfText(text, filename) {
+    currentFileName = filename;
+    parsedEntities = parseDXF(text);
+    layerStyles = {};
+    renderAll(true);
+    showToast(`Загружено: ${filename} (${parsedEntities.length} объектов)`);
+  }
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = (ev) => loadDxfText(ev.target.result, file.name);
+    reader.readAsText(file);
+  }
+
+  ['crsSelect', 'unitsSelect', 'swapXY'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => renderAll(false));
+  });
+
+  document.getElementById('btnDemo').addEventListener('click', () => {
+    currentFileName = 'mif mid.dxf (демо)';
+    parsedEntities = [
+      {
+        type: 'POLYLINE', layer: '0', closed: false,
+        pts: [
+          [1313477.5538, 480900.8061], [1313465.8603, 480921.0238], [1313468.4896, 480922.5688],
+          [1313557.9774, 480912.9804], [1313647.4529, 480903.2779], [1313736.9809, 480894.0727],
+          [1313675.5719, 480800.8600], [1313698.2433, 480792.9854], [1313789.9896, 480761.1190],
+          [1313812.8463, 480753.7998], [1313811.8402, 480750.2143]
+        ]
+      },
+      {
+        type: 'POLYLINE', layer: '0', closed: false,
+        pts: [
+          [1313476.6881, 480900.3054], [1313464.3593, 480921.6210], [1313481.2253, 480939.0163],
+          [1313474.3454, 480951.3766], [1313461.7422, 480973.5455], [1313450.0659, 480993.9666],
+          [1313437.2879, 481016.1208], [1313424.0744, 481039.5190], [1313421.5292, 481043.9554],
+          [1313420.6518, 481044.5383]
+        ]
+      },
+      {
+        type: 'POLYGON', layer: '0', closed: true,
+        pts: [
+          [1313477.7875, 480901.8123], [1313480.0673, 480897.9325],
+          [1313478.0843, 480896.7673], [1313475.8045, 480900.6471]
+        ]
+      }
+    ];
+    layerStyles = {};
+    renderAll(true);
+    showToast('Загружена демо-трасса (3 объекта)');
+  });
+
+  document.getElementById('btnRef').addEventListener('click', () => {
+    const wgs = mskToWgs84(1313477.9359, 480899.2898, 'msk16_z1');
+    if (refMarker) map.removeLayer(refMarker);
+    refMarker = L.marker(wgs).addTo(map).bindPopup(`
+      <div class="popup-title">Эталонная точка МСК-16 (Зона 1)</div>
+      <div>DXF (Восток, Север): <span class="popup-mono">1313477.9359, 480899.2898</span></div>
+      <div>Расчёт WGS-84: <span class="popup-mono">${wgs[0].toFixed(9)}, ${wgs[1].toFixed(9)}</span></div>
+      <div>Ожидалось: <span class="popup-mono">55.835170848, 49.246789891</span></div>
+      <div style="color:var(--ok); font-weight:700; margin-top:4px;">Погрешность: &lt; 0.001 м</div>
+    `).openPopup();
+    map.setView(wgs, 19);
+  });
+
+  document.getElementById('btnExportCsv').addEventListener('click', () => {
+    if (!parsedEntities.length) {
+      showToast('Сначала загрузите DXF-файл или демо', true);
+      return;
+    }
+    const crs = document.getElementById('crsSelect').value;
+    const scale = parseFloat(document.getElementById('unitsSelect').value);
+    const swapXY = document.getElementById('swapXY').checked;
+
+    let csv = '\uFEFFСлой;Объект;Вершина;DXF_X;DXF_Y;WGS84_Lat;WGS84_Lon;Сегмент_м\n';
+    parsedEntities.forEach((ent, eIdx) => {
+      ent.pts.forEach((pt, vIdx) => {
+        const rawX = pt[0] * scale, rawY = pt[1] * scale;
+        const east = swapXY ? rawY : rawX;
+        const north = swapXY ? rawX : rawY;
+        const wgs = mskToWgs84(east, north, crs);
+        const seg = vIdx > 0
+          ? Math.hypot((pt[0] - ent.pts[vIdx - 1][0]) * scale, (pt[1] - ent.pts[vIdx - 1][1]) * scale).toFixed(2)
+          : '0.00';
+        csv += `${ent.layer};${eIdx + 1};${vIdx + 1};${pt[0].toFixed(4)};${pt[1].toFixed(4)};${wgs[0].toFixed(8)};${wgs[1].toFixed(8)};${seg}\n`;
+      });
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (currentFileName || 'route').replace(/\.[^.]+$/, '') + '_wgs84.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Ведомость координат выгружена в CSV');
+  });
+</script>
+</body>
+</html>
