@@ -116,6 +116,42 @@
     }
     .toggle-btn.collapsed { left: 14px; }
 
+    /* Floating Return-to-Route Button */
+    .fit-route-btn {
+      position: absolute;
+      top: 10px;
+      right: 54px;
+      z-index: 1001;
+      height: 36px;
+      padding: 0 13px;
+      border-radius: 10px;
+      background: var(--glass-strong);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 12px rgba(56, 189, 248, 0.14);
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .fit-route-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+    .fit-route-btn svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
     /* Header */
     .header {
       padding: 15px 18px 14px;
@@ -426,6 +462,18 @@
 <div id="toast" class="toast"></div>
 
 <button class="toggle-btn" id="toggleSidebar" title="Свернуть / развернуть панель">◀</button>
+
+<button class="fit-route-btn" id="btnFitRoute" title="Отцентровать и приблизить мою трассу">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="7" />
+    <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+    <line x1="12" y1="2" x2="12" y2="5" />
+    <line x1="12" y1="19" x2="12" y2="22" />
+    <line x1="2" y1="12" x2="5" y2="12" />
+    <line x1="19" y1="12" x2="22" y2="12" />
+  </svg>
+  <span>К трассе</span>
+</button>
 
 <aside class="sidebar" id="sidebar">
   <div class="header">
@@ -795,7 +843,6 @@
   let layerGroups = {};
   let layerStyles = {};
   let refMarker = null;
-  const defaultPalette = ['#0284c7', '#e11d48', '#d97706', '#7c3aed', '#059669', '#db2777'];
 
   function calcPlanLength(pts, scale) {
     let len = 0;
@@ -804,6 +851,31 @@
     }
     return len;
   }
+
+  function fitToRoute(animate = true) {
+    if (!renderedGeometries.length) {
+      showToast('Сначала загрузите трассу DXF', true);
+      return;
+    }
+    let geoms = renderedGeometries.filter(g => layerStyles[g.layer] && layerStyles[g.layer].visible);
+    if (!geoms.length) geoms = renderedGeometries;
+
+    const bounds = L.latLngBounds();
+    geoms.forEach(g => {
+      g.latlngs.forEach(ll => {
+        if (!isNaN(ll[0]) && !isNaN(ll[1])) bounds.extend(ll);
+      });
+    });
+
+    if (bounds.isValid()) {
+      const leftPad = sidebarEl.classList.contains('collapsed') ? 40 : 390;
+      const opts = { paddingTopLeft: [leftPad, 55], paddingBottomRight: [40, 55], maxZoom: 19 };
+      if (animate) map.flyToBounds(bounds, { ...opts, duration: 0.65 });
+      else map.fitBounds(bounds, opts);
+    }
+  }
+
+  document.getElementById('btnFitRoute').addEventListener('click', () => fitToRoute(true));
 
   function renderAll(fitMap = true) {
     Object.values(layerGroups).forEach(g => map.removeLayer(g));
@@ -814,7 +886,6 @@
     const scale = parseFloat(document.getElementById('unitsSelect').value);
     const swapXY = document.getElementById('swapXY').checked;
 
-    const bounds = L.latLngBounds();
     let totalLen = 0;
     let totalVerts = 0;
     let firstRaw = null;
@@ -870,7 +941,6 @@
       `;
       shape.bindPopup(popupHtml);
       shape.addTo(layerGroups[lname]);
-      latlngs.forEach(ll => { if (!isNaN(ll[0]) && !isNaN(ll[1])) bounds.extend(ll); });
     });
 
     document.getElementById('dFile').textContent = currentFileName || '—';
@@ -913,8 +983,8 @@
       });
     }
 
-    if (fitMap && bounds.isValid()) {
-      map.fitBounds(bounds, { paddingTopLeft: [390, 40], paddingBottomRight: [40, 40], maxZoom: 19 });
+    if (fitMap && renderedGeometries.length) {
+      fitToRoute(false);
     }
   }
 
