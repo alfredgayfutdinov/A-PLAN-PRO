@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>А-План Про v0.7 — МСК-16 (Татарстан) → WGS-84</title>
+  <title>А-План Про — МСК-16 (Татарстан) → WGS-84</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2338bdf8'/%3E%3Cstop offset='100%25' stop-color='%232dd4bf'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%230b1222'/%3E%3Crect x='2' y='2' width='60' height='60' rx='14' fill='none' stroke='%2338bdf8' stroke-opacity='0.45' stroke-width='2'/%3E%3Cpath d='M18 12v40M32 12v40M46 12v40M12 18h40M12 32h40M12 46h40' stroke='%2338bdf8' stroke-opacity='0.14' stroke-width='1.2'/%3E%3Cpath d='M14 46 L27 25 L41 37 L51 17' fill='none' stroke='url(%23g)' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='14' cy='46' r='4.2' fill='%230b1222' stroke='%2338bdf8' stroke-width='2.8'/%3E%3Ccircle cx='27' cy='25' r='4.2' fill='%230b1222' stroke='%2338bdf8' stroke-width='2.8'/%3E%3Ccircle cx='41' cy='37' r='4.2' fill='%230b1222' stroke='%232dd4bf' stroke-width='2.8'/%3E%3Ccircle cx='51' cy='17' r='5' fill='%232dd4bf'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -117,34 +118,32 @@
 
     /* Header */
     .header {
-      padding: 16px 18px 14px;
+      padding: 15px 18px 14px;
       border-bottom: 1px solid var(--border-subtle);
       background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(167, 139, 250, 0.06));
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
+    .app-logo {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.35));
+    }
+    .header-text { min-width: 0; }
     .header h1 {
       font-size: 18px;
       font-weight: 700;
       color: var(--num);
       letter-spacing: 0.02em;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      line-height: 1.2;
       text-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
     }
-    .badge {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 999px;
-      background: rgba(56, 189, 248, 0.14);
-      color: var(--accent);
-      border: 1px solid rgba(56, 189, 248, 0.45);
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
-    }
     .header p {
-      font-size: 12px;
+      font-size: 11.5px;
       color: var(--muted);
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     /* Sections */
@@ -430,8 +429,26 @@
 
 <aside class="sidebar" id="sidebar">
   <div class="header">
-    <h1>А-План Про <span class="badge">v0.7 PRO</span></h1>
-    <p>Наложение DXF (МСК-16 Татарстан) на карты</p>
+    <svg class="app-logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#38bdf8" />
+          <stop offset="100%" stop-color="#2dd4bf" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill="#0b1222" />
+      <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="url(#logoGrad)" stroke-opacity="0.55" stroke-width="2" />
+      <path d="M18 12v40M32 12v40M46 12v40M12 18h40M12 32h40M12 46h40" stroke="#38bdf8" stroke-opacity="0.16" stroke-width="1.2" />
+      <path d="M14 46 L27 25 L41 37 L51 17" fill="none" stroke="url(#logoGrad)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="14" cy="46" r="4.2" fill="#0b1222" stroke="#38bdf8" stroke-width="2.8" />
+      <circle cx="27" cy="25" r="4.2" fill="#0b1222" stroke="#38bdf8" stroke-width="2.8" />
+      <circle cx="41" cy="37" r="4.2" fill="#0b1222" stroke="#2dd4bf" stroke-width="2.8" />
+      <circle cx="51" cy="17" r="5" fill="#2dd4bf" />
+    </svg>
+    <div class="header-text">
+      <h1>А-План Про</h1>
+      <p>Наложение DXF (МСК-16 Татарстан) на карты</p>
+    </div>
   </div>
 
   <div class="sidebar-scroll">
@@ -773,7 +790,7 @@
   // 4. СОСТОЯНИЕ, ОТРИСОВКА И СЛОИ
   // =========================================================================
   let parsedEntities = [];
-  let renderedGeometries = []; // кэш пересчитанных WGS-84 координат для экспорта картинки
+  let renderedGeometries = [];
   let currentFileName = '';
   let layerGroups = {};
   let layerStyles = {};
@@ -936,7 +953,6 @@
     btn.textContent = '⏳ Рендеринг снимка (+50 м)...';
 
     try {
-      // 1. Находим точные границы видимой трассы
       let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
       visibleGeoms.forEach(g => {
         g.latlngs.forEach(([lat, lon]) => {
@@ -947,7 +963,6 @@
         });
       });
 
-      // 2. Расширяем границы ровно на +50 м во все стороны (С, Ю, З, В)
       const marginM = 50.0;
       const avgLatRad = ((minLat + maxLat) / 2) * Math.PI / 180;
       const dLat = marginM / 111320.0;
@@ -958,7 +973,6 @@
       const west = minLon - dLon;
       const east = maxLon + dLon;
 
-      // 3. Выбираем оптимальный зум (высокое качество, макс. сторона <= 2200 px)
       let exportCfg = basemapConfigs[currentBasemapKey];
       let usedOsmFallback = false;
       if (!exportCfg.cors) {
@@ -977,7 +991,6 @@
         z--;
       }
 
-      // 4. Создаём холст
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(pxW, 200);
       canvas.height = Math.max(pxH, 200);
@@ -985,7 +998,6 @@
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 5. Загружаем и рисуем все тайлы в расширенном окне
       const txMin = Math.floor(nw[0] / 256);
       const txMax = Math.floor(se[0] / 256);
       const tyMin = Math.floor(nw[1] / 256);
@@ -1009,7 +1021,6 @@
       }
       await Promise.all(tileTasks);
 
-      // 6. Рисуем трассу поверх тайлов с контрастной обводкой
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
@@ -1038,14 +1049,12 @@
           ctx.strokeStyle = '#eab308';
           ctx.stroke();
         } else {
-          // Белая подложка-контур для читаемости на карте
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
           ctx.lineWidth = 6;
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
           ctx.stroke();
 
-          // Основная линия трассы
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
           ctx.lineWidth = 3.5;
@@ -1054,7 +1063,6 @@
         }
       });
 
-      // 7. Копируем в буфер обмена (или скачиваем PNG при ограничении file://)
       const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
       let copied = false;
       if (navigator.clipboard && window.ClipboardItem) {
