@@ -202,7 +202,7 @@
     .dropzone {
       border: 1.5px dashed rgba(56, 189, 248, 0.45);
       border-radius: 12px;
-      padding: 16px 12px;
+      padding: 14px 12px;
       text-align: center;
       cursor: pointer;
       transition: 0.2s;
@@ -230,7 +230,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
     .btn {
       background: rgba(30, 41, 59, 0.65);
@@ -275,6 +275,17 @@
       background: var(--ok);
       color: #070b14;
       box-shadow: 0 0 18px var(--ok-glow);
+    }
+
+    .btn-violet {
+      background: rgba(167, 139, 250, 0.16);
+      border-color: rgba(167, 139, 250, 0.55);
+      color: #c4b5fd;
+    }
+    .btn-violet:hover {
+      background: var(--violet);
+      color: #070b14;
+      box-shadow: 0 0 18px rgba(167, 139, 250, 0.45);
     }
 
     .btn-neon {
@@ -495,19 +506,20 @@
     </svg>
     <div class="header-text">
       <h1>А-План Про</h1>
-      <p>Наложение DXF (МСК-16 Татарстан) на карты</p>
+      <p>Наложение DWG / DXF (МСК-16) на карты</p>
     </div>
   </div>
 
   <div class="sidebar-scroll">
-    <!-- 1. Загрузка файла -->
+    <!-- 1. Загрузка файла или вставка из AutoCAD -->
     <div class="section">
-      <div class="section-title">1. Загрузка DXF-трассы</div>
+      <div class="section-title">1. Загрузка трассы (DWG / DXF)</div>
       <div class="dropzone" id="dropzone">
         <strong>Перетащите .DXF файл сюда</strong>
-        <span>или нажмите для выбора (AutoCAD R12 / MapInfo / Modern)</span>
+        <span>или нажмите Ctrl+V после команды C2M в AutoCAD</span>
         <input type="file" id="fileInput" accept=".dxf,.txt" />
       </div>
+      <button class="btn btn-violet btn-full" id="btnPasteCad">📋 Вставить из AutoCAD (C2M / Ctrl+V)</button>
       <div class="btn-row">
         <button class="btn btn-primary" id="btnDemo">Демо (mif mid.dxf)</button>
         <button class="btn btn-ok" id="btnRef">Проверить эталон</button>
@@ -553,10 +565,10 @@
     <div class="section">
       <div class="section-title">3. Диагностика и выгрузка</div>
       <div class="diag-card">
-        <div class="diag-row"><span class="diag-label">Файл:</span><span class="diag-val" id="dFile">—</span></div>
+        <div class="diag-row"><span class="diag-label">Источник:</span><span class="diag-val" id="dFile">—</span></div>
         <div class="diag-row"><span class="diag-label">Объектов / вершин:</span><span class="diag-val" id="dCount">0 / 0</span></div>
         <div class="diag-row"><span class="diag-label">Общая длина:</span><span class="diag-val ok" id="dLen">0.0 м</span></div>
-        <div class="diag-row"><span class="diag-label">1-я вершина (DXF):</span><span class="diag-val" id="dRaw">—</span></div>
+        <div class="diag-row"><span class="diag-label">1-я вершина (МСК):</span><span class="diag-val" id="dRaw">—</span></div>
         <div class="diag-row"><span class="diag-label">1-я вершина (WGS-84):</span><span class="diag-val ok" id="dWgs">—</span></div>
       </div>
       <button class="btn btn-neon btn-full" id="btnCopyImg">📷 Скопировать как картинку (+50 м)</button>
@@ -565,9 +577,9 @@
 
     <!-- 4. Слои -->
     <div class="section">
-      <div class="section-title">4. Слои DXF</div>
+      <div class="section-title">4. Слои чертежа</div>
       <div class="layer-list" id="layerList">
-        <div style="font-size:12px; color:var(--muted);">Загрузите DXF для отображения слоёв</div>
+        <div style="font-size:12px; color:var(--muted);">Загрузите DXF или вставьте трассу (Ctrl+V)</div>
       </div>
     </div>
   </div>
@@ -681,7 +693,7 @@
   }
 
   // =========================================================================
-  // 2. НАТИВНЫЙ ПАРСЕР DXF (AutoCAD R12 / MapInfo POLYLINE+VERTEX + Modern)
+  // 2. ПАРСЕРЫ: DXF + БУФЕР ОБМЕНА AUTOCAD (C2M / СПИСОК)
   // =========================================================================
   function parseDXF(text) {
     const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
@@ -799,6 +811,75 @@
     return entities;
   }
 
+  function parseClipboardText(text) {
+    const clean = (text || '').trim();
+    if (!clean) return null;
+
+    // 1. Формат LISP-скрипта C2M (APLAN_V1)
+    if (clean.includes('APLAN_V1') || clean.startsWith('OBJ|')) {
+      const entities = [];
+      const lines = clean.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      lines.forEach(line => {
+        const l = line.trim();
+        if (!l.startsWith('OBJ|')) return;
+        const parts = l.split('|');
+        if (parts.length < 5) return;
+        const type = parts[1] || 'POLYLINE';
+        const layer = parts[2] || '0';
+        const closed = parts[3] === '1';
+        const ptsStr = parts.slice(4).join('|');
+        const pts = [];
+        ptsStr.split(';').forEach(pair => {
+          const [xs, ys] = pair.split(',');
+          const x = parseFloat(xs), y = parseFloat(ys);
+          if (!isNaN(x) && !isNaN(y)) pts.push([x, y]);
+        });
+        if (pts.length >= 1) {
+          entities.push({ type: closed ? 'POLYGON' : type, layer, closed, pts });
+        }
+      });
+      if (entities.length) return { source: 'AutoCAD (C2M)', entities };
+    }
+
+    // 2. Если вставили текст DXF целиком
+    if (clean.includes('ENTITIES') && clean.includes('SECTION')) {
+      const dxfEnts = parseDXF(clean);
+      if (dxfEnts.length) return { source: 'Буфер (DXF)', entities: dxfEnts };
+    }
+
+    // 3. Текст из команды СПИСОК / LIST в AutoCAD / nanoCAD
+    const lines = clean.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    const listEnts = [];
+    let cur = null;
+    const coordRe = /X\s*=\s*(-?\d+(?:[.,]\d+)?)\s+Y\s*=\s*(-?\d+(?:[.,]\d+)?)/i;
+    const layerRe = /(?:Слой|Layer)\s*:\s*["«]?([^"»\r\n]+)["»]?/i;
+
+    lines.forEach(raw => {
+      const line = raw.trim();
+      if (/^(?:LWPOLYLINE|POLYLINE|LINE|ПОЛИЛИНИЯ|ОТРЕЗОК)\b/i.test(line)) {
+        if (cur && cur.pts.length >= 2) listEnts.push(cur);
+        cur = { type: 'POLYLINE', layer: '0', closed: false, pts: [] };
+      }
+      const lm = line.match(layerRe);
+      if (lm && cur) cur.layer = lm[1].trim();
+      if (cur && /(?:Замкнутая|Closed)/i.test(line)) {
+        cur.closed = true;
+        cur.type = 'POLYGON';
+      }
+      const cm = line.match(coordRe);
+      if (cm) {
+        if (!cur) cur = { type: 'POLYLINE', layer: '0', closed: false, pts: [] };
+        const x = parseFloat(cm[1].replace(',', '.'));
+        const y = parseFloat(cm[2].replace(',', '.'));
+        if (!isNaN(x) && !isNaN(y)) cur.pts.push([x, y]);
+      }
+    });
+    if (cur && cur.pts.length >= 2) listEnts.push(cur);
+    if (listEnts.length) return { source: 'AutoCAD (СПИСОК)', entities: listEnts };
+
+    return null;
+  }
+
   // =========================================================================
   // 3. КАРТА LEAFLET (БЕЗ АТРИБУЦИИ И ФЛАГА, OSM ПО УМОЛЧАНИЮ)
   // =========================================================================
@@ -854,7 +935,7 @@
 
   function fitToRoute(animate = true) {
     if (!renderedGeometries.length) {
-      showToast('Сначала загрузите трассу DXF', true);
+      showToast('Сначала загрузите трассу (DXF или Ctrl+V)', true);
       return;
     }
     let geoms = renderedGeometries.filter(g => layerStyles[g.layer] && layerStyles[g.layer].visible);
@@ -1012,7 +1093,7 @@
   document.getElementById('btnCopyImg').addEventListener('click', async () => {
     const visibleGeoms = renderedGeometries.filter(g => layerStyles[g.layer] && layerStyles[g.layer].visible);
     if (!visibleGeoms.length) {
-      showToast('Сначала загрузите трассу DXF', true);
+      showToast('Сначала загрузите трассу', true);
       return;
     }
 
@@ -1166,7 +1247,7 @@
   });
 
   // =========================================================================
-  // 6. ЗАГРУЗКА ФАЙЛОВ, ДЕМО, ЭТАЛОН И CSV
+  // 6. ЗАГРУЗКА ФАЙЛОВ, ВСТАВКА ИЗ AUTOCAD (CTRL+V), ДЕМО И CSV
   // =========================================================================
   function loadDxfText(text, filename) {
     currentFileName = filename;
@@ -1175,6 +1256,39 @@
     renderAll(true);
     showToast(`Загружено: ${filename} (${parsedEntities.length} объектов)`);
   }
+
+  function applyClipboardText(text) {
+    const parsed = parseClipboardText(text);
+    if (!parsed) {
+      showToast('В буфере нет координат (сделайте C2M в AutoCAD)', true);
+      return;
+    }
+    currentFileName = parsed.source;
+    parsedEntities = parsed.entities;
+    layerStyles = {};
+    renderAll(true);
+    showToast(`Вставлено из ${parsed.source}: ${parsed.entities.length} объектов`);
+  }
+
+  // Глобальный перехват Ctrl+V прямо на странице
+  window.addEventListener('paste', (e) => {
+    const text = (e.clipboardData || window.clipboardData)?.getData('text');
+    if (text) applyClipboardText(text);
+  });
+
+  // Кнопка вставки из буфера
+  document.getElementById('btnPasteCad').addEventListener('click', async () => {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      showToast('Просто нажмите Ctrl+V на клавиатуре', true);
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      applyClipboardText(text);
+    } catch (err) {
+      showToast('Нет доступа к буферу — нажмите Ctrl+V на клавиатуре', true);
+    }
+  });
 
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
@@ -1249,7 +1363,7 @@
 
   document.getElementById('btnExportCsv').addEventListener('click', () => {
     if (!parsedEntities.length) {
-      showToast('Сначала загрузите DXF-файл или демо', true);
+      showToast('Сначала загрузите трассу', true);
       return;
     }
     const crs = document.getElementById('crsSelect').value;
