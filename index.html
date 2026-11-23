@@ -186,7 +186,6 @@
       opacity: 0.9;
     }
 
-    /* Выделенный блок экспорта картинки */
     .section-export {
       margin: 10px 12px;
       padding: 12px 14px;
@@ -380,7 +379,6 @@
     }
     .layer-len { font-family: 'Consolas', monospace; font-size: 11px; color: var(--ok); font-weight: 600; }
 
-    /* Перетаскиваемая выноска на карте */
     .mleader-icon {
       background: transparent !important;
       border: none !important;
@@ -630,6 +628,70 @@
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // Перевод цвета из DWG (#RRGGBB или ACI:1..255) в HEX
+  function aciToHex(aci) {
+    const base = {
+      1: '#ef4444', // Red
+      2: '#eab308', // Yellow
+      3: '#22c55e', // Green
+      4: '#06b6d4', // Cyan
+      5: '#2563eb', // Blue
+      6: '#d946ef', // Magenta
+      7: '#1e293b', // White/Black -> тёмный для читаемости на OSM
+      8: '#64748b', // Dark Gray
+      9: '#94a3b8'  // Light Gray
+    };
+    if (base[aci]) return base[aci];
+    if (aci >= 250 && aci <= 255) {
+      const grays = ['#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1'];
+      return grays[aci - 250] || '#475569';
+    }
+    if (aci >= 10 && aci <= 249) {
+      const idx = aci - 10;
+      const hue = Math.floor(idx / 10) * 15;
+      const sub = idx % 10;
+      const sat = (sub % 2 === 0) ? 90 : 50;
+      const lightMap = [50, 50, 72, 72, 42, 42, 32, 32, 22, 22];
+      const l = lightMap[sub];
+      // HSL -> HEX
+      const s = sat / 100, lv = l / 100;
+      const c = (1 - Math.abs(2 * lv - 1)) * s;
+      const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+      const m = lv - c / 2;
+      let r = 0, g = 0, b = 0;
+      if (hue < 60) { r = c; g = x; }
+      else if (hue < 120) { r = x; g = c; }
+      else if (hue < 180) { g = c; b = x; }
+      else if (hue < 240) { g = x; b = c; }
+      else if (hue < 300) { r = x; b = c; }
+      else { r = c; b = x; }
+      const toHex = v => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+    return '#ef4444';
+  }
+
+  function resolveDwgColor(raw) {
+    if (!raw) return null;
+    if (raw.startsWith('#') && raw.length === 7) {
+      // Если чисто белый на светлой карте — чуть затемняем для видимости
+      return raw.toUpperCase() === '#FFFFFF' ? '#1e293b' : raw;
+    }
+    if (raw.startsWith('ACI:')) {
+      const n = parseInt(raw.slice(4), 10);
+      if (!isNaN(n)) return aciToHex(n);
+    }
+    return null;
+  }
+
+  function hexToRgba(hex, alpha) {
+    if (!hex || !hex.startsWith('#') || hex.length !== 7) return `rgba(250, 204, 21, ${alpha})`;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
   const sidebarEl = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('toggleSidebar');
   toggleBtn.addEventListener('click', () => {
@@ -718,7 +780,7 @@
   }
 
   // =========================================================================
-  // 2. ПАРСЕРЫ: DXF + БУФЕР ОБМЕНА AUTOCAD (C2M / СПИСОК)
+  // 2. ПАРСЕРЫ: DXF + БУФЕР ОБМЕНА AUTOCAD (C2M V1/V2 + СПИСОК)
   // =========================================================================
   function parseDXF(text) {
     const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
@@ -840,27 +902,46 @@
     const clean = (text || '').trim();
     if (!clean) return null;
 
-    if (clean.includes('APLAN_V1') || clean.startsWith('OBJ|')) {
+    if (clean.includes('APLAN_V2') || clean.includes('APLAN_V1') || clean.startsWith('OBJ2|') || clean.startsWith('OBJ|')) {
       const entities = [];
       const lines = clean.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
       lines.forEach(line => {
         const l = line.trim();
-        if (!l.startsWith('OBJ|')) return;
-        const parts = l.split('|');
-        if (parts.length < 5) return;
-        const type = parts[1] || 'POLYLINE';
-        const layer = parts[2] || '0';
-        const closed = parts[3] === '1';
-        const ptsStr = parts[4];
-        const label = parts.length >= 6 ? parts.slice(5).join('|').replace(/\\n/g, '\n').trim() : '';
-        const pts = [];
-        ptsStr.split(';').forEach(pair => {
-          const [xs, ys] = pair.split(',');
-          const x = parseFloat(xs), y = parseFloat(ys);
-          if (!isNaN(x) && !isNaN(y)) pts.push([x, y]);
-        });
-        if (pts.length >= 1) {
-          entities.push({ type: closed ? 'POLYGON' : type, layer, closed, pts, label });
+        if (l.startsWith('OBJ2|')) {
+          const parts = l.split('|');
+          if (parts.length < 6) return;
+          const type = parts[1] || 'POLYLINE';
+          const layer = parts[2] || '0';
+          const closed = parts[3] === '1';
+          const color = resolveDwgColor(parts[4]);
+          const ptsStr = parts[5];
+          const label = parts.length >= 7 ? parts.slice(6).join('|').replace(/\\n/g, '\n').trim() : '';
+          const pts = [];
+          ptsStr.split(';').forEach(pair => {
+            const [xs, ys] = pair.split(',');
+            const x = parseFloat(xs), y = parseFloat(ys);
+            if (!isNaN(x) && !isNaN(y)) pts.push([x, y]);
+          });
+          if (pts.length >= 1) {
+            entities.push({ type: closed ? 'POLYGON' : type, layer, closed, pts, label, color });
+          }
+        } else if (l.startsWith('OBJ|')) {
+          const parts = l.split('|');
+          if (parts.length < 5) return;
+          const type = parts[1] || 'POLYLINE';
+          const layer = parts[2] || '0';
+          const closed = parts[3] === '1';
+          const ptsStr = parts[4];
+          const label = parts.length >= 6 ? parts.slice(5).join('|').replace(/\\n/g, '\n').trim() : '';
+          const pts = [];
+          ptsStr.split(';').forEach(pair => {
+            const [xs, ys] = pair.split(',');
+            const x = parseFloat(xs), y = parseFloat(ys);
+            if (!isNaN(x) && !isNaN(y)) pts.push([x, y]);
+          });
+          if (pts.length >= 1) {
+            entities.push({ type: closed ? 'POLYGON' : type, layer, closed, pts, label, color: null });
+          }
         }
       });
       if (entities.length) return { source: 'AutoCAD (C2M)', entities };
@@ -999,7 +1080,11 @@
     parsedEntities.forEach((ent, idx) => {
       const lname = ent.layer || '0';
       if (!layerStyles[lname]) {
-        layerStyles[lname] = { visible: true, color: '#ef4444' };
+        layerStyles[lname] = {
+          visible: true,
+          color: ent.color || '#ef4444',
+          override: false
+        };
       }
       if (!layerGroups[lname]) {
         layerGroups[lname] = L.layerGroup();
@@ -1025,21 +1110,32 @@
       totalLen += entLen;
       layerLengths[lname] = (layerLengths[lname] || 0) + entLen;
 
-      const color = layerStyles[lname].color;
-      const geomObj = { type: ent.type, layer: lname, closed: ent.closed, latlngs, label: ent.label || '' };
+      // Если пользователь вручную поменял цвет слоя — используем его; иначе родной цвет из DWG
+      const st = layerStyles[lname];
+      const entColor = st.override ? st.color : (ent.color || st.color);
+      const polyColor = st.override ? st.color : (ent.color || '#eab308');
+
+      const geomObj = {
+        type: ent.type,
+        layer: lname,
+        closed: ent.closed,
+        latlngs,
+        label: ent.label || '',
+        color: ent.closed ? polyColor : entColor
+      };
       renderedGeometries.push(geomObj);
 
       if (isLeader) {
         let leaderLine = null;
         if (latlngs.length >= 2) {
-          leaderLine = L.polyline(latlngs, { color: '#1e293b', weight: 2, opacity: 0.9 }).addTo(layerGroups[lname]);
-          L.circleMarker(latlngs[0], { radius: 3.5, color: '#1e293b', fillColor: color, fillOpacity: 1, weight: 1.5 }).addTo(layerGroups[lname]);
+          leaderLine = L.polyline(latlngs, { color: entColor, weight: 2, opacity: 0.9 }).addTo(layerGroups[lname]);
+          L.circleMarker(latlngs[0], { radius: 3.5, color: entColor, fillColor: entColor, fillOpacity: 1, weight: 1.5 }).addTo(layerGroups[lname]);
         }
         const anchor = latlngs[latlngs.length - 1];
         const textHtml = escapeHtml(ent.label || 'Выноска');
         const icon = L.divIcon({
           className: 'mleader-icon',
-          html: `<div class="mleader-box" style="border-color:${color}" title="Перетащите, чтобы сдвинуть выноску">${textHtml}</div>`,
+          html: `<div class="mleader-box" style="border-color:${entColor}; color:${entColor}" title="Перетащите, чтобы сдвинуть выноску">${textHtml}</div>`,
           iconSize: null,
           iconAnchor: [0, 0]
         });
@@ -1054,11 +1150,11 @@
 
       let shape;
       if (ent.pts.length === 1) {
-        shape = L.circleMarker(latlngs[0], { radius: 6, color, fillColor: color, fillOpacity: 0.75 });
+        shape = L.circleMarker(latlngs[0], { radius: 6, color: entColor, fillColor: entColor, fillOpacity: 0.75 });
       } else if (ent.closed) {
-        shape = L.polygon(latlngs, { color: '#eab308', weight: 2.5, fillColor: '#facc15', fillOpacity: 0.35 });
+        shape = L.polygon(latlngs, { color: polyColor, weight: 2.5, fillColor: polyColor, fillOpacity: 0.28 });
       } else {
-        shape = L.polyline(latlngs, { color, weight: 3.5, opacity: 0.95 });
+        shape = L.polyline(latlngs, { color: entColor, weight: 3.5, opacity: 0.95 });
       }
 
       const popupHtml = `
@@ -1092,7 +1188,7 @@
         row.innerHTML = `
           <div class="layer-left">
             <input type="checkbox" ${st.visible ? 'checked' : ''} />
-            <input type="color" value="${st.color}" />
+            <input type="color" value="${st.color}" title="Перекрасить весь слой" />
             <span title="${escapeHtml(lname)}">Слой: ${escapeHtml(lname)}</span>
           </div>
           <span class="layer-len">${(layerLengths[lname] || 0).toFixed(1)} м</span>
@@ -1106,6 +1202,7 @@
         });
         col.addEventListener('input', () => {
           st.color = col.value;
+          st.override = true;
           renderAll(false);
         });
         listEl.appendChild(row);
@@ -1224,7 +1321,7 @@
 
       visibleGeoms.forEach(g => {
         if (g.type === 'MLEADER') return;
-        const color = layerStyles[g.layer].color;
+        const color = g.color || layerStyles[g.layer].color;
         const pts = g.latlngs.map(([lat, lon]) => {
           const [wx, wy] = latLonToWorldPx(lat, lon, z);
           return [wx - nw[0], wy - nw[1]];
@@ -1242,10 +1339,10 @@
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
           ctx.closePath();
-          ctx.fillStyle = 'rgba(250, 204, 21, 0.35)';
+          ctx.fillStyle = hexToRgba(color, 0.28);
           ctx.fill();
           ctx.lineWidth = 3;
-          ctx.strokeStyle = '#eab308';
+          ctx.strokeStyle = color;
           ctx.stroke();
         } else {
           ctx.beginPath();
@@ -1266,7 +1363,7 @@
       ctx.textBaseline = 'top';
       visibleGeoms.forEach(g => {
         if (g.type !== 'MLEADER') return;
-        const color = layerStyles[g.layer].color;
+        const color = g.color || layerStyles[g.layer].color;
         const pts = g.latlngs.map(([lat, lon]) => {
           const [wx, wy] = latLonToWorldPx(lat, lon, z);
           return [wx - nw[0], wy - nw[1]];
@@ -1276,16 +1373,13 @@
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
           ctx.lineWidth = 2;
-          ctx.strokeStyle = '#1e293b';
+          ctx.strokeStyle = color;
           ctx.stroke();
 
           ctx.beginPath();
           ctx.arc(pts[0][0], pts[0][1], 4, 0, Math.PI * 2);
           ctx.fillStyle = color;
           ctx.fill();
-          ctx.lineWidth = 1.5;
-          ctx.strokeStyle = '#1e293b';
-          ctx.stroke();
         }
 
         const anchor = pts[pts.length - 1];
@@ -1308,7 +1402,7 @@
         ctx.strokeStyle = color;
         ctx.strokeRect(bx, by, boxW, boxH);
 
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = color;
         textLines.forEach((tl, idx) => {
           ctx.fillText(tl, bx + padX, by + padY + idx * lineH);
         });
