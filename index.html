@@ -2045,16 +2045,64 @@
     vres: {
       name: 'ВРЭС',
       address: 'Казань, ул. Журналистов, 29',
+      geoQuery: 'Россия, Казань, улица Журналистов, 29',
       storageKey: 'aplan_vres_coords',
-      defaultCoords: [55.807400, 49.188000]
+      defaultCoords: [55.807400, 49.188000] // запасные (приблизительные) — заменяются геокодированием адреса
     },
     sres: {
       name: 'СРЭС',
       address: 'Казань, ул. Центрально-Мариупольская, 47',
+      geoQuery: 'Россия, Казань, Центрально-Мариупольская улица, 47',
       storageKey: 'aplan_sres_coords',
-      defaultCoords: [55.859500, 49.078500]
+      defaultCoords: [55.859500, 49.078500] // запасные (приблизительные) — заменяются геокодированием адреса
     }
   };
+
+  // --- Геокодирование адресов РЭС (Nominatim / OSM) с кешем в localStorage ---
+  const KAZAN_BOUNDS = { latMin: 55.60, latMax: 56.00, lonMin: 48.80, lonMax: 49.50 };
+  const resGeoResolved = {}; // key -> true, когда адрес уже определён (или попытка не удалась)
+
+  function isInKazan(lat, lon) {
+    return lat >= KAZAN_BOUNDS.latMin && lat <= KAZAN_BOUNDS.latMax &&
+           lon >= KAZAN_BOUNDS.lonMin && lon <= KAZAN_BOUNDS.lonMax;
+  }
+
+  async function geocodeResAddress(cfg) {
+    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ru' +
+      '&viewbox=48.80,56.00,49.50,55.60&bounded=1&accept-language=ru&q=' + encodeURIComponent(cfg.geoQuery);
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error('Nominatim HTTP ' + resp.status);
+    const arr = await resp.json();
+    if (!Array.isArray(arr) || !arr.length) throw new Error('Адрес не найден');
+    const lat = parseFloat(arr[0].lat), lon = parseFloat(arr[0].lon);
+    if (isNaN(lat) || isNaN(lon) || !isInKazan(lat, lon)) throw new Error('Координаты вне Казани');
+    return [lat, lon];
+  }
+
+  // Определяет «точку по умолчанию» для РЭС по адресу. Ручное положение маркера (drag) имеет приоритет.
+  async function ensureResDefault(key, forceReset = false) {
+    const cfg = RES_CONFIG[key];
+    const geoKey = cfg.storageKey + '_geo';
+    const hasUserCoords = !forceReset && localStorage.getItem(cfg.storageKey) !== null;
+
+    if (!resGeoResolved[key]) {
+      let geo = null;
+      try { geo = loadSavedCoords(geoKey, [NaN, NaN]); } catch (e) {}
+      if (!geo || isNaN(geo[0]) || !isInKazan(geo[0], geo[1])) {
+        geo = null;
+        try {
+          geo = await geocodeResAddress(cfg);
+          try { localStorage.setItem(geoKey, JSON.stringify(geo)); } catch (e) {}
+        } catch (err) {
+          console.warn('Геокодирование ' + cfg.name + ' не удалось, используются запасные координаты:', err);
+          showToast(`Не удалось определить адрес «${cfg.name}» — использованы запасные координаты. Перетащите маркер вручную.`, true);
+        }
+      }
+      if (geo) cfg.defaultCoords = geo;
+      resGeoResolved[key] = true;
+    }
+    if (!hasUserCoords) resEndCoordsMap[key] = [...cfg.defaultCoords];
+  }
 
   let activeResKey = 'vres';
   const resEndCoordsMap = {
@@ -2101,13 +2149,17 @@
 
   async function buildResRoute(fitMap = true) {
     if (!resStartLatLng) resStartLatLng = getObjectCenterLatLng() || [55.835171, 49.246790];
-    const cfg = RES_CONFIG[activeResKey];
-    const endLatLng = resEndCoordsMap[activeResKey];
+    const routeKey = activeResKey;
+    const cfg = RES_CONFIG[routeKey];
 
     document.getElementById('resAddressLabel').textContent = cfg.address;
     document.getElementById('resDistRound').textContent = 'расчёт...';
     document.getElementById('resDistExact').textContent = '—';
     document.getElementById('resDuration').textContent = '—';
+
+    await ensureResDefault(routeKey);
+    if (routeKey !== activeResKey) return; // пользователь успел переключить подвкладку
+    const endLatLng = resEndCoordsMap[routeKey];
 
     const res = await fetchOsrmRoute(resStartLatLng, endLatLng);
     resRouteCoords = res.coords;
@@ -2171,10 +2223,11 @@
     buildResRoute(true);
   });
 
-  document.getElementById('btnResetResEnd').addEventListener('click', () => {
+  document.getElementById('btnResetResEnd').addEventListener('click', async () => {
     const cfg = RES_CONFIG[activeResKey];
-    resEndCoordsMap[activeResKey] = [...cfg.defaultCoords];
     try { localStorage.removeItem(cfg.storageKey); } catch (e) {}
+    await ensureResDefault(activeResKey, true);
+    resEndCoordsMap[activeResKey] = [...cfg.defaultCoords];
     buildResRoute(true);
     showToast(`Точка «${cfg.name}» сброшена на ${cfg.address}`);
   });
