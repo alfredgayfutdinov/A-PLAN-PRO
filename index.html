@@ -64,7 +64,7 @@
       top: 14px;
       left: 14px;
       bottom: 14px;
-      width: 356px;
+      width: 410px;
       background: var(--glass);
       backdrop-filter: blur(18px) saturate(150%);
       -webkit-backdrop-filter: blur(18px) saturate(150%);
@@ -90,12 +90,12 @@
     }
     .sheet-handle { display: none; }
 
-    /* Вкладки Ситплан / Маршрут доставки */
+    /* Вкладки Ситплан / Доставка / Вывоз в РЭС */
     .tabs-bar {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 6px;
-      padding: 10px 14px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border-subtle);
       background: rgba(7, 11, 20, 0.45);
       flex-shrink: 0;
@@ -104,14 +104,15 @@
       background: rgba(30, 41, 59, 0.55);
       border: 1px solid var(--border-subtle);
       border-radius: 9px;
-      padding: 8px 10px;
+      padding: 8px 6px;
       color: var(--muted);
       font-family: inherit;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       cursor: pointer;
       transition: 0.18s;
       text-align: center;
+      white-space: nowrap;
     }
     .tab-btn:hover {
       color: var(--text);
@@ -126,10 +127,41 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
+    /* Подвкладки ВРЭС / СРЭС */
+    .subtabs-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .subtab-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s;
+      text-align: center;
+    }
+    .subtab-btn:hover {
+      color: var(--text);
+      border-color: rgba(45, 212, 191, 0.5);
+    }
+    .subtab-btn.active {
+      background: rgba(45, 212, 191, 0.18);
+      border-color: var(--ok);
+      color: var(--ok);
+      box-shadow: 0 0 12px rgba(45, 212, 191, 0.22);
+    }
+
     .toggle-btn {
       position: absolute;
       top: 14px;
-      left: 382px;
+      left: 436px;
       z-index: 1002;
       width: 38px;
       height: 38px;
@@ -226,7 +258,7 @@
       100% { transform: scale(2.2); opacity: 0; }
     }
 
-    /* Маркеры маршрута доставки (База / Объект / Плашка расстояния) */
+    /* Маркеры маршрутов (Старт / Финиш / Плашка расстояния) */
     .route-pin-icon { background: transparent !important; border: none !important; }
     .route-pin-wrap {
       display: inline-flex;
@@ -489,9 +521,10 @@
       align-items: center;
       padding: 4px 0;
       border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      gap: 8px;
     }
     .diag-row:last-child { border-bottom: none; }
-    .diag-label { color: var(--muted); }
+    .diag-label { color: var(--muted); white-space: nowrap; }
     .diag-val {
       color: var(--num);
       font-family: 'Consolas', 'JetBrains Mono', monospace;
@@ -522,7 +555,7 @@
     .layer-item:hover { border-color: rgba(56, 189, 248, 0.4); }
     .layer-left { display: flex; align-items: center; gap: 8px; overflow: hidden; }
     .layer-left input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
-    .layer-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 145px; }
+    .layer-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 195px; }
     .layer-item input[type="color"] {
       width: 22px; height: 22px; border: none; background: none; cursor: pointer; padding: 0; border-radius: 4px;
     }
@@ -813,7 +846,7 @@
     </svg>
     <div class="header-text">
       <h1>А-План Про</h1>
-      <p>Ситплан МСК-16 и маршрут доставки</p>
+      <p>Ситплан МСК-16, доставка и вывоз в РЭС</p>
     </div>
     <button class="mobile-close-btn" id="mobileCloseBtn" title="Закрыть меню">✕</button>
   </div>
@@ -821,7 +854,8 @@
   <!-- Переключатель вкладок -->
   <div class="tabs-bar">
     <button class="tab-btn active" data-tab="plan">📍 Ситплан</button>
-    <button class="tab-btn" data-tab="delivery">🚚 Маршрут доставки</button>
+    <button class="tab-btn" data-tab="delivery">🚚 Доставка</button>
+    <button class="tab-btn" data-tab="res">📦 Вывоз в РЭС</button>
   </div>
 
   <div class="sidebar-scroll">
@@ -904,7 +938,7 @@
     <!-- ================= ВКЛАДКА 2: МАРШРУТ ДОСТАВКИ ================= -->
     <div id="tabDelivery" class="tab-content">
       <div class="section">
-        <div class="section-title">1. Параметры маршрута</div>
+        <div class="section-title">1. Параметры маршрута (База → Объект)</div>
         <div class="diag-card">
           <div class="diag-row">
             <span class="diag-label">Старт:</span>
@@ -962,6 +996,76 @@
         </div>
       </div>
     </div>
+
+    <!-- ================= ВКЛАДКА 3: ВЫВОЗ В РЭС ================= -->
+    <div id="tabRes" class="tab-content">
+      <div class="section">
+        <div class="section-title">1. Выбор склада РЭС (Объект → РЭС)</div>
+        <div class="subtabs-bar">
+          <button class="subtab-btn active" data-res="vres">ВРЭС</button>
+          <button class="subtab-btn" data-res="sres">СРЭС</button>
+        </div>
+        <div class="diag-card">
+          <div class="diag-row">
+            <span class="diag-label">Старт:</span>
+            <span class="diag-val" style="font-family:inherit; font-size:11px;">Объект (центр трассы)</span>
+          </div>
+          <div class="diag-row">
+            <span class="diag-label">Финиш:</span>
+            <span class="diag-val" id="resAddressLabel" style="font-family:inherit; font-size:11px;">Казань, ул. Журналистов, 29</span>
+          </div>
+          <div class="diag-row">
+            <span class="diag-label">В проект (округл. вверх):</span>
+            <span class="diag-val ok" id="resDistRound">—</span>
+          </div>
+          <div class="diag-row">
+            <span class="diag-label">Точно по дорогам:</span>
+            <span class="diag-val" id="resDistExact">—</span>
+          </div>
+          <div class="diag-row">
+            <span class="diag-label">Время в пути:</span>
+            <span class="diag-val" id="resDuration">—</span>
+          </div>
+        </div>
+        <p class="diag-hint">Маркеры <b>«Объект»</b>, <b>«ВРЭС / СРЭС»</b> и плашку <b>«Расстояние»</b> можно перетаскивать мышкой. Положение склада РЭС сохраняется автоматически.</p>
+      </div>
+
+      <div class="section-export">
+        <div class="section-title">2. Экспорт маршрута вывоза</div>
+        <button class="btn btn-neon btn-export-main" id="btnCopyResImg">📷 Скопировать маршрут как картинку</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">3. Подписи и сброс точек</div>
+        <div class="grid-2">
+          <div class="field" style="margin-bottom:0">
+            <label for="resStartLabelInput">Точка старта</label>
+            <input type="text" id="resStartLabelInput" value="Объект" />
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label for="resEndLabelInput">Точка финиша</label>
+            <input type="text" id="resEndLabelInput" value="ВРЭС" />
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-primary" id="btnResetResStart">🔄 Сброс Объекта</button>
+          <button class="btn btn-ok" id="btnResetResEnd">🔄 Сброс РЭС</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">4. Подложка карты</div>
+        <div class="field" style="margin-bottom:0">
+          <select id="basemapSelectRes">
+            <option value="osm" selected>OpenStreetMap</option>
+            <option value="dgis">2ГИС</option>
+            <option value="google_hybrid">Google Гибрид</option>
+            <option value="google_sat">Google Спутник</option>
+            <option value="esri">ESRI Спутник</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </div>
 </aside>
 
@@ -988,6 +1092,14 @@
 
   function isMobileView() {
     return window.innerWidth <= 768;
+  }
+
+  function loadSavedCoords(key, fallback) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key));
+      if (Array.isArray(saved) && saved.length === 2 && !isNaN(saved[0]) && !isNaN(saved[1])) return saved;
+    } catch (e) {}
+    return [...fallback];
   }
 
   function aciToHex(aci) {
@@ -1392,11 +1504,13 @@
     currentBasemapKey = key;
     document.getElementById('basemapSelect').value = key;
     document.getElementById('basemapSelectDelivery').value = key;
+    document.getElementById('basemapSelectRes').value = key;
     map.removeLayer(currentBasemap);
     currentBasemap = basemaps[currentBasemapKey].addTo(map);
   }
   document.getElementById('basemapSelect').addEventListener('change', (e) => setBasemap(e.target.value));
   document.getElementById('basemapSelectDelivery').addEventListener('change', (e) => setBasemap(e.target.value));
+  document.getElementById('basemapSelectRes').addEventListener('change', (e) => setBasemap(e.target.value));
 
   map.on('mousemove', (e) => {
     document.getElementById('hudCoords').textContent = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
@@ -1536,7 +1650,7 @@
   // =========================================================================
   // 4. СОСТОЯНИЕ, ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК И ОТРИСОВКА СИТПЛАНА
   // =========================================================================
-  let activeTab = 'plan'; // 'plan' | 'delivery'
+  let activeTab = 'plan'; // 'plan' | 'delivery' | 'res'
   let parsedEntities = [];
   let renderedGeometries = [];
   let currentFileName = '';
@@ -1573,6 +1687,10 @@
       fitToDeliveryRoute(animate);
       return;
     }
+    if (activeTab === 'res') {
+      fitToResRoute(animate);
+      return;
+    }
     if (!renderedGeometries.length) {
       showToast('Сначала загрузите трассу (DXF или Ctrl+V)', true);
       return;
@@ -1589,7 +1707,7 @@
 
     if (bounds.isValid()) {
       const mobile = isMobileView();
-      const leftPad = (sidebarEl.classList.contains('collapsed') || mobile) ? 28 : 390;
+      const leftPad = (sidebarEl.classList.contains('collapsed') || mobile) ? 28 : 445;
       const topPad = mobile ? 70 : 55;
       const bottomPad = mobile ? 70 : 55;
       const opts = { paddingTopLeft: [leftPad, topPad], paddingBottomRight: [28, bottomPad], maxZoom: 19 };
@@ -1756,38 +1874,20 @@
     }
 
     if (fitMap && renderedGeometries.length) {
-      deliveryEndLatLng = getObjectCenterLatLng();
+      const center = getObjectCenterLatLng();
+      deliveryEndLatLng = center;
       deliveryBadgeLatLng = null;
-      if (activeTab === 'plan') {
-        fitToRoute(false);
-      } else {
-        buildDeliveryRoute(true);
-      }
+      resStartLatLng = center;
+      resBadgeLatLng = null;
+      if (activeTab === 'plan') fitToRoute(false);
+      else if (activeTab === 'delivery') buildDeliveryRoute(true);
+      else if (activeTab === 'res') buildResRoute(true);
     }
   }
 
   // =========================================================================
-  // 4.5. ВКЛАДКА 2: МАРШРУТ ДОСТАВКИ (Салиха Батыева, 19 -> Объект)
+  // 4.5. ОБЩИЕ ХЕЛПЕРЫ ДЛЯ МАРШРУТОВ (ДОСТАВКА И ВЫВОЗ В РЭС)
   // =========================================================================
-  const DEFAULT_BASE_COORDS = [55.755560, 49.243021]; // г. Казань, ул. Салиха Батыева, д. 19
-  let deliveryStartLatLng = (() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('aplan_base_coords'));
-      if (Array.isArray(saved) && saved.length === 2 && !isNaN(saved[0]) && !isNaN(saved[1])) return saved;
-    } catch (e) {}
-    return [...DEFAULT_BASE_COORDS];
-  })();
-
-  let deliveryLayerGroup = L.layerGroup();
-  let deliveryEndLatLng = null;
-  let deliveryRouteCoords = [];
-  let deliveryDistRoundedKm = null;
-  let deliveryDistExactKm = null;
-  let deliveryBadgeLatLng = null;
-  let deliveryStartMarker = null;
-  let deliveryEndMarker = null;
-  let deliveryBadgeMarker = null;
-
   function makePinIcon(label, kind) {
     return L.divIcon({
       className: 'route-pin-icon',
@@ -1806,46 +1906,10 @@
     });
   }
 
-  function updateDeliveryLabels() {
-    const startText = document.getElementById('startLabelInput').value.trim() || 'База';
-    const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
-    if (deliveryStartMarker) deliveryStartMarker.setIcon(makePinIcon(startText, 'start'));
-    if (deliveryEndMarker) deliveryEndMarker.setIcon(makePinIcon(endText, 'end'));
-  }
-
-  document.getElementById('startLabelInput').addEventListener('input', updateDeliveryLabels);
-  document.getElementById('endLabelInput').addEventListener('input', updateDeliveryLabels);
-
-  function fitToDeliveryRoute(animate = true) {
-    const bounds = L.latLngBounds();
-    if (deliveryRouteCoords.length) {
-      deliveryRouteCoords.forEach(ll => bounds.extend(ll));
-    } else {
-      bounds.extend(deliveryStartLatLng);
-      if (deliveryEndLatLng) bounds.extend(deliveryEndLatLng);
-    }
-    if (bounds.isValid()) {
-      const mobile = isMobileView();
-      const leftPad = (sidebarEl.classList.contains('collapsed') || mobile) ? 40 : 395;
-      const opts = { paddingTopLeft: [leftPad, 65], paddingBottomRight: [45, 65], maxZoom: 16 };
-      if (animate) map.flyToBounds(bounds, { ...opts, duration: 0.65 });
-      else map.fitBounds(bounds, opts);
-    }
-  }
-
-  async function buildDeliveryRoute(fitMap = true) {
-    if (!deliveryEndLatLng) {
-      deliveryEndLatLng = getObjectCenterLatLng() || [55.835171, 49.246790];
-    }
-
-    document.getElementById('delDistRound').textContent = 'расчёт...';
-    document.getElementById('delDistExact').textContent = '—';
-    document.getElementById('delDuration').textContent = '—';
-
-    const url = `https://router.project-osrm.org/route/v1/driving/${deliveryStartLatLng[1]},${deliveryStartLatLng[0]};${deliveryEndLatLng[1]},${deliveryEndLatLng[0]}?overview=full&geometries=geojson`;
-
-    let coords = [deliveryStartLatLng, deliveryEndLatLng];
-    let exactKm = map.distance(deliveryStartLatLng, deliveryEndLatLng) / 1000.0;
+  async function fetchOsrmRoute(startLatLng, endLatLng) {
+    const url = `https://router.project-osrm.org/route/v1/driving/${startLatLng[1]},${startLatLng[0]};${endLatLng[1]},${endLatLng[0]}?overview=full&geometries=geojson`;
+    let coords = [startLatLng, endLatLng];
+    let exactKm = map.distance(startLatLng, endLatLng) / 1000.0;
     let durationMin = null;
     let isFallback = false;
 
@@ -1865,40 +1929,79 @@
       isFallback = true;
       showToast('Сервер маршрутов недоступен — показана прямая линия', true);
     }
+    return {
+      coords,
+      exactKm,
+      roundedKm: Math.max(1, Math.ceil(exactKm)),
+      durationMin,
+      isFallback
+    };
+  }
 
-    deliveryRouteCoords = coords;
-    deliveryDistExactKm = exactKm;
-    deliveryDistRoundedKm = Math.max(1, Math.ceil(exactKm));
+  // ================= ВКЛАДКА 2: МАРШРУТ ДОСТАВКИ (База -> Объект) =================
+  const DEFAULT_BASE_COORDS = [55.755560, 49.243021]; // г. Казань, ул. Салиха Батыева, д. 19
+  let deliveryStartLatLng = loadSavedCoords('aplan_base_coords', DEFAULT_BASE_COORDS);
+  let deliveryLayerGroup = L.layerGroup();
+  let deliveryEndLatLng = null;
+  let deliveryRouteCoords = [];
+  let deliveryDistRoundedKm = null;
+  let deliveryBadgeLatLng = null;
+  let deliveryStartMarker = null;
+  let deliveryEndMarker = null;
+  let deliveryBadgeMarker = null;
 
-    document.getElementById('delDistRound').textContent = `${deliveryDistRoundedKm} км`;
-    document.getElementById('delDistExact').textContent = `${exactKm.toFixed(2)} км`;
-    document.getElementById('delDuration').textContent = durationMin !== null ? `~${durationMin} мин` : '—';
-    if (activeTab === 'delivery') {
-      document.getElementById('hudLen').textContent = `${deliveryDistRoundedKm} км`;
+  function updateDeliveryLabels() {
+    const startText = document.getElementById('startLabelInput').value.trim() || 'База';
+    const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
+    if (deliveryStartMarker) deliveryStartMarker.setIcon(makePinIcon(startText, 'start'));
+    if (deliveryEndMarker) deliveryEndMarker.setIcon(makePinIcon(endText, 'end'));
+  }
+  document.getElementById('startLabelInput').addEventListener('input', updateDeliveryLabels);
+  document.getElementById('endLabelInput').addEventListener('input', updateDeliveryLabels);
+
+  function fitToDeliveryRoute(animate = true) {
+    const bounds = L.latLngBounds();
+    if (deliveryRouteCoords.length) deliveryRouteCoords.forEach(ll => bounds.extend(ll));
+    else {
+      bounds.extend(deliveryStartLatLng);
+      if (deliveryEndLatLng) bounds.extend(deliveryEndLatLng);
     }
+    if (bounds.isValid()) {
+      const mobile = isMobileView();
+      const leftPad = (sidebarEl.classList.contains('collapsed') || mobile) ? 40 : 445;
+      const opts = { paddingTopLeft: [leftPad, 65], paddingBottomRight: [45, 65], maxZoom: 16 };
+      if (animate) map.flyToBounds(bounds, { ...opts, duration: 0.65 });
+      else map.fitBounds(bounds, opts);
+    }
+  }
 
-    const midIdx = Math.floor(coords.length / 2);
-    deliveryBadgeLatLng = coords[midIdx] || [(deliveryStartLatLng[0] + deliveryEndLatLng[0]) / 2, (deliveryStartLatLng[1] + deliveryEndLatLng[1]) / 2];
+  async function buildDeliveryRoute(fitMap = true) {
+    if (!deliveryEndLatLng) deliveryEndLatLng = getObjectCenterLatLng() || [55.835171, 49.246790];
+
+    document.getElementById('delDistRound').textContent = 'расчёт...';
+    document.getElementById('delDistExact').textContent = '—';
+    document.getElementById('delDuration').textContent = '—';
+
+    const res = await fetchOsrmRoute(deliveryStartLatLng, deliveryEndLatLng);
+    deliveryRouteCoords = res.coords;
+    deliveryDistRoundedKm = res.roundedKm;
+
+    document.getElementById('delDistRound').textContent = `${res.roundedKm} км`;
+    document.getElementById('delDistExact').textContent = `${res.exactKm.toFixed(2)} км`;
+    document.getElementById('delDuration').textContent = res.durationMin !== null ? `~${res.durationMin} мин` : '—';
+    if (activeTab === 'delivery') document.getElementById('hudLen').textContent = `${res.roundedKm} км`;
+
+    const midIdx = Math.floor(res.coords.length / 2);
+    deliveryBadgeLatLng = res.coords[midIdx] || [(deliveryStartLatLng[0] + deliveryEndLatLng[0]) / 2, (deliveryStartLatLng[1] + deliveryEndLatLng[1]) / 2];
 
     deliveryLayerGroup.clearLayers();
-
-    L.polyline(coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(deliveryLayerGroup);
-    L.polyline(coords, {
-      color: '#2563eb',
-      weight: 4.5,
-      opacity: 0.95,
-      dashArray: isFallback ? '10 8' : null
-    }).addTo(deliveryLayerGroup);
+    L.polyline(res.coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(deliveryLayerGroup);
+    L.polyline(res.coords, { color: '#2563eb', weight: 4.5, opacity: 0.95, dashArray: res.isFallback ? '10 8' : null }).addTo(deliveryLayerGroup);
 
     const startText = document.getElementById('startLabelInput').value.trim() || 'База';
     const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
 
-    deliveryStartMarker = L.marker(deliveryStartLatLng, {
-      icon: makePinIcon(startText, 'start'),
-      draggable: true,
-      zIndexOffset: 500
-    }).addTo(deliveryLayerGroup);
-
+    deliveryStartMarker = L.marker(deliveryStartLatLng, { icon: makePinIcon(startText, 'start'), draggable: true, zIndexOffset: 500 }).addTo(deliveryLayerGroup);
     deliveryStartMarker.on('dragend', (e) => {
       const p = e.target.getLatLng();
       deliveryStartLatLng = [p.lat, p.lng];
@@ -1906,32 +2009,20 @@
       buildDeliveryRoute(false);
     });
 
-    deliveryEndMarker = L.marker(deliveryEndLatLng, {
-      icon: makePinIcon(endText, 'end'),
-      draggable: true,
-      zIndexOffset: 600
-    }).addTo(deliveryLayerGroup);
-
+    deliveryEndMarker = L.marker(deliveryEndLatLng, { icon: makePinIcon(endText, 'end'), draggable: true, zIndexOffset: 600 }).addTo(deliveryLayerGroup);
     deliveryEndMarker.on('dragend', (e) => {
       const p = e.target.getLatLng();
       deliveryEndLatLng = [p.lat, p.lng];
       buildDeliveryRoute(false);
     });
 
-    deliveryBadgeMarker = L.marker(deliveryBadgeLatLng, {
-      icon: makeDistBadgeIcon(deliveryDistRoundedKm),
-      draggable: true,
-      zIndexOffset: 700
-    }).addTo(deliveryLayerGroup);
-
+    deliveryBadgeMarker = L.marker(deliveryBadgeLatLng, { icon: makeDistBadgeIcon(res.roundedKm), draggable: true, zIndexOffset: 700 }).addTo(deliveryLayerGroup);
     deliveryBadgeMarker.on('drag', (e) => {
       const p = e.target.getLatLng();
       deliveryBadgeLatLng = [p.lat, p.lng];
     });
 
-    if (activeTab === 'delivery' && !map.hasLayer(deliveryLayerGroup)) {
-      deliveryLayerGroup.addTo(map);
-    }
+    if (activeTab === 'delivery' && !map.hasLayer(deliveryLayerGroup)) deliveryLayerGroup.addTo(map);
     if (fitMap) fitToDeliveryRoute(true);
   }
 
@@ -1944,15 +2035,151 @@
 
   document.getElementById('btnResetDeliveryEnd').addEventListener('click', () => {
     const center = getObjectCenterLatLng();
-    if (!center) {
-      showToast('Сначала загрузите объект на вкладке «Ситплан»', true);
-      return;
-    }
+    if (!center) { showToast('Сначала загрузите объект на вкладке «Ситплан»', true); return; }
     deliveryEndLatLng = center;
     buildDeliveryRoute(true);
   });
 
-  // Переключение вкладок
+  // ================= ВКЛАДКА 3: ВЫВОЗ В РЭС (Объект -> ВРЭС / СРЭС) =================
+  const RES_CONFIG = {
+    vres: {
+      name: 'ВРЭС',
+      address: 'Казань, ул. Журналистов, 29',
+      storageKey: 'aplan_vres_coords',
+      defaultCoords: [55.807400, 49.188000]
+    },
+    sres: {
+      name: 'СРЭС',
+      address: 'Казань, ул. Центрально-Мариупольская, 47',
+      storageKey: 'aplan_sres_coords',
+      defaultCoords: [55.859500, 49.078500]
+    }
+  };
+
+  let activeResKey = 'vres';
+  const resEndCoordsMap = {
+    vres: loadSavedCoords(RES_CONFIG.vres.storageKey, RES_CONFIG.vres.defaultCoords),
+    sres: loadSavedCoords(RES_CONFIG.sres.storageKey, RES_CONFIG.sres.defaultCoords)
+  };
+  const resCustomEndLabel = { vres: 'ВРЭС', sres: 'СРЭС' };
+
+  let resLayerGroup = L.layerGroup();
+  let resStartLatLng = null;
+  let resRouteCoords = [];
+  let resDistRoundedKm = null;
+  let resBadgeLatLng = null;
+  let resStartMarker = null;
+  let resEndMarker = null;
+  let resBadgeMarker = null;
+
+  function updateResLabels() {
+    const startText = document.getElementById('resStartLabelInput').value.trim() || 'Объект';
+    const endText = document.getElementById('resEndLabelInput').value.trim() || RES_CONFIG[activeResKey].name;
+    resCustomEndLabel[activeResKey] = endText;
+    if (resStartMarker) resStartMarker.setIcon(makePinIcon(startText, 'start'));
+    if (resEndMarker) resEndMarker.setIcon(makePinIcon(endText, 'end'));
+  }
+  document.getElementById('resStartLabelInput').addEventListener('input', updateResLabels);
+  document.getElementById('resEndLabelInput').addEventListener('input', updateResLabels);
+
+  function fitToResRoute(animate = true) {
+    const bounds = L.latLngBounds();
+    const endLL = resEndCoordsMap[activeResKey];
+    if (resRouteCoords.length) resRouteCoords.forEach(ll => bounds.extend(ll));
+    else {
+      if (resStartLatLng) bounds.extend(resStartLatLng);
+      if (endLL) bounds.extend(endLL);
+    }
+    if (bounds.isValid()) {
+      const mobile = isMobileView();
+      const leftPad = (sidebarEl.classList.contains('collapsed') || mobile) ? 40 : 445;
+      const opts = { paddingTopLeft: [leftPad, 65], paddingBottomRight: [45, 65], maxZoom: 16 };
+      if (animate) map.flyToBounds(bounds, { ...opts, duration: 0.65 });
+      else map.fitBounds(bounds, opts);
+    }
+  }
+
+  async function buildResRoute(fitMap = true) {
+    if (!resStartLatLng) resStartLatLng = getObjectCenterLatLng() || [55.835171, 49.246790];
+    const cfg = RES_CONFIG[activeResKey];
+    const endLatLng = resEndCoordsMap[activeResKey];
+
+    document.getElementById('resAddressLabel').textContent = cfg.address;
+    document.getElementById('resDistRound').textContent = 'расчёт...';
+    document.getElementById('resDistExact').textContent = '—';
+    document.getElementById('resDuration').textContent = '—';
+
+    const res = await fetchOsrmRoute(resStartLatLng, endLatLng);
+    resRouteCoords = res.coords;
+    resDistRoundedKm = res.roundedKm;
+
+    document.getElementById('resDistRound').textContent = `${res.roundedKm} км`;
+    document.getElementById('resDistExact').textContent = `${res.exactKm.toFixed(2)} км`;
+    document.getElementById('resDuration').textContent = res.durationMin !== null ? `~${res.durationMin} мин` : '—';
+    if (activeTab === 'res') document.getElementById('hudLen').textContent = `${res.roundedKm} км`;
+
+    const midIdx = Math.floor(res.coords.length / 2);
+    resBadgeLatLng = res.coords[midIdx] || [(resStartLatLng[0] + endLatLng[0]) / 2, (resStartLatLng[1] + endLatLng[1]) / 2];
+
+    resLayerGroup.clearLayers();
+    L.polyline(res.coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(resLayerGroup);
+    L.polyline(res.coords, { color: '#2563eb', weight: 4.5, opacity: 0.95, dashArray: res.isFallback ? '10 8' : null }).addTo(resLayerGroup);
+
+    const startText = document.getElementById('resStartLabelInput').value.trim() || 'Объект';
+    const endText = document.getElementById('resEndLabelInput').value.trim() || cfg.name;
+
+    resStartMarker = L.marker(resStartLatLng, { icon: makePinIcon(startText, 'start'), draggable: true, zIndexOffset: 500 }).addTo(resLayerGroup);
+    resStartMarker.on('dragend', (e) => {
+      const p = e.target.getLatLng();
+      resStartLatLng = [p.lat, p.lng];
+      buildResRoute(false);
+    });
+
+    resEndMarker = L.marker(endLatLng, { icon: makePinIcon(endText, 'end'), draggable: true, zIndexOffset: 600 }).addTo(resLayerGroup);
+    resEndMarker.on('dragend', (e) => {
+      const p = e.target.getLatLng();
+      resEndCoordsMap[activeResKey] = [p.lat, p.lng];
+      try { localStorage.setItem(cfg.storageKey, JSON.stringify(resEndCoordsMap[activeResKey])); } catch (err) {}
+      buildResRoute(false);
+    });
+
+    resBadgeMarker = L.marker(resBadgeLatLng, { icon: makeDistBadgeIcon(res.roundedKm), draggable: true, zIndexOffset: 700 }).addTo(resLayerGroup);
+    resBadgeMarker.on('drag', (e) => {
+      const p = e.target.getLatLng();
+      resBadgeLatLng = [p.lat, p.lng];
+    });
+
+    if (activeTab === 'res' && !map.hasLayer(resLayerGroup)) resLayerGroup.addTo(map);
+    if (fitMap) fitToResRoute(true);
+  }
+
+  document.querySelectorAll('.subtab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.res;
+      if (key === activeResKey) return;
+      activeResKey = key;
+      document.querySelectorAll('.subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.res === activeResKey));
+      document.getElementById('resEndLabelInput').value = resCustomEndLabel[activeResKey] || RES_CONFIG[activeResKey].name;
+      buildResRoute(true);
+    });
+  });
+
+  document.getElementById('btnResetResStart').addEventListener('click', () => {
+    const center = getObjectCenterLatLng();
+    if (!center) { showToast('Сначала загрузите объект на вкладке «Ситплан»', true); return; }
+    resStartLatLng = center;
+    buildResRoute(true);
+  });
+
+  document.getElementById('btnResetResEnd').addEventListener('click', () => {
+    const cfg = RES_CONFIG[activeResKey];
+    resEndCoordsMap[activeResKey] = [...cfg.defaultCoords];
+    try { localStorage.removeItem(cfg.storageKey); } catch (e) {}
+    buildResRoute(true);
+    showToast(`Точка «${cfg.name}» сброшена на ${cfg.address}`);
+  });
+
+  // Переключение основных 3 вкладок
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.tab;
@@ -1962,30 +2189,43 @@
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
       document.getElementById('tabPlan').classList.toggle('active', activeTab === 'plan');
       document.getElementById('tabDelivery').classList.toggle('active', activeTab === 'delivery');
+      document.getElementById('tabRes').classList.toggle('active', activeTab === 'res');
 
-      if (activeTab === 'delivery') {
-        setPlanLayersVisible(false);
-        if (!map.hasLayer(deliveryLayerGroup)) deliveryLayerGroup.addTo(map);
-        document.getElementById('btnFitLabel').textContent = 'К маршруту';
-        document.getElementById('hudLenLabel').textContent = 'Маршрут:';
-        document.getElementById('hudLen').textContent = deliveryDistRoundedKm ? `${deliveryDistRoundedKm} км` : '—';
-        if (!renderedGeometries.length && !deliveryEndLatLng) {
-          showToast('Объект не загружен — показан тестовый финиш (перетащите маркер)', true);
-        }
-        buildDeliveryRoute(true);
-      } else {
-        if (map.hasLayer(deliveryLayerGroup)) map.removeLayer(deliveryLayerGroup);
+      // Скрываем все слои, затем включаем нужный
+      setPlanLayersVisible(false);
+      if (map.hasLayer(deliveryLayerGroup)) map.removeLayer(deliveryLayerGroup);
+      if (map.hasLayer(resLayerGroup)) map.removeLayer(resLayerGroup);
+
+      if (activeTab === 'plan') {
         setPlanLayersVisible(true);
         document.getElementById('btnFitLabel').textContent = 'К трассе';
         document.getElementById('hudLenLabel').textContent = 'Длина:';
         document.getElementById('hudLen').textContent = lastPlanLenText;
         if (renderedGeometries.length) fitToRoute(true);
+      } else if (activeTab === 'delivery') {
+        deliveryLayerGroup.addTo(map);
+        document.getElementById('btnFitLabel').textContent = 'К маршруту';
+        document.getElementById('hudLenLabel').textContent = 'Доставка:';
+        document.getElementById('hudLen').textContent = deliveryDistRoundedKm ? `${deliveryDistRoundedKm} км` : '—';
+        if (!renderedGeometries.length && !deliveryEndLatLng) {
+          showToast('Объект не загружен — показан тестовый финиш (перетащите маркер)', true);
+        }
+        buildDeliveryRoute(true);
+      } else if (activeTab === 'res') {
+        resLayerGroup.addTo(map);
+        document.getElementById('btnFitLabel').textContent = 'К маршруту';
+        document.getElementById('hudLenLabel').textContent = 'Вывоз:';
+        document.getElementById('hudLen').textContent = resDistRoundedKm ? `${resDistRoundedKm} км` : '—';
+        if (!renderedGeometries.length && !resStartLatLng) {
+          showToast('Объект не загружен — показан тестовый старт (перетащите маркер)', true);
+        }
+        buildResRoute(true);
       }
     });
   });
 
   // =========================================================================
-  // 5. ЭКСПОРТ КАРТИНОК В БУФЕР ОБМЕНА (СИТПЛАН +50 М и МАРШРУТ ДОСТАВКИ)
+  // 5. ЭКСПОРТ КАРТИНОК В БУФЕР ОБМЕНА (СИТПЛАН +50 М и МАРШРУТЫ)
   // =========================================================================
   function latLonToWorldPx(lat, lon, z) {
     const n = 256 * Math.pow(2, z);
@@ -2017,6 +2257,168 @@
     ctx.lineTo(x, y + r);
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
+  }
+
+  // Общая функция экспорта маршрута (для Доставки и Вывоза в РЭС)
+  async function exportRouteImage({ btn, routeCoords, startLatLng, endLatLng, badgeLatLng, roundedKm, startText, endText, filePrefix }) {
+    if (!routeCoords.length || !startLatLng || !endLatLng) {
+      showToast('Сначала постройте маршрут', true);
+      return;
+    }
+
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Рендеринг маршрута...';
+
+    try {
+      let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+      const allPts = [...routeCoords, startLatLng, endLatLng];
+      if (badgeLatLng) allPts.push(badgeLatLng);
+      allPts.forEach(([lat, lon]) => {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+      });
+
+      const padLat = Math.max((maxLat - minLat) * 0.18, 0.004);
+      const padLon = Math.max((maxLon - minLon) * 0.22, 0.008);
+      const south = minLat - padLat, north = maxLat + padLat;
+      const west = minLon - padLon, east = maxLon + padLon;
+
+      let exportCfg = basemapConfigs[currentBasemapKey];
+      let usedOsmFallback = false;
+      if (!exportCfg.cors) { exportCfg = basemapConfigs.osm; usedOsmFallback = true; }
+
+      let z = Math.min(exportCfg.maxZoom, 16), pxW, pxH, nw, se;
+      while (z >= 8) {
+        nw = latLonToWorldPx(north, west, z);
+        se = latLonToWorldPx(south, east, z);
+        pxW = Math.ceil(se[0] - nw[0]);
+        pxH = Math.ceil(se[1] - nw[1]);
+        if (Math.max(pxW, pxH) <= 1800) break;
+        z--;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(pxW, 400);
+      canvas.height = Math.max(pxH, 300);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const txMin = Math.floor(nw[0] / 256), txMax = Math.floor(se[0] / 256);
+      const tyMin = Math.floor(nw[1] / 256), tyMax = Math.floor(se[1] / 256);
+      const tileTasks = [];
+      for (let tx = txMin; tx <= txMax; tx++) {
+        for (let ty = tyMin; ty <= tyMax; ty++) {
+          const url = exportCfg.url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
+          tileTasks.push(loadTileImage(url).then(img => {
+            if (img) ctx.drawImage(img, Math.round(tx * 256 - nw[0]), Math.round(ty * 256 - nw[1]), 256, 256);
+          }));
+        }
+      }
+      await Promise.all(tileTasks);
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const routePx = routeCoords.map(([lat, lon]) => {
+        const [wx, wy] = latLonToWorldPx(lat, lon, z);
+        return [wx - nw[0], wy - nw[1]];
+      });
+
+      ctx.beginPath();
+      routePx.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+      ctx.lineWidth = 8.5;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.stroke();
+
+      ctx.beginPath();
+      routePx.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#2563eb';
+      ctx.stroke();
+
+      function drawPinWithLabel(latlng, text, color) {
+        const [wx, wy] = latLonToWorldPx(latlng[0], latlng[1], z);
+        const px = wx - nw[0], py = wy - nw[1];
+
+        ctx.beginPath();
+        ctx.arc(px, py, 9, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.font = '700 14px "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(text).width;
+        const padX = 9, boxH = 26, boxW = tw + padX * 2;
+        const bx = px + 14, by = py - boxH / 2;
+
+        drawRoundedRect(ctx, bx, by, boxW, boxH, 6);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(text, bx + padX, py + 0.5);
+      }
+
+      drawPinWithLabel(startLatLng, startText, '#10b981');
+      drawPinWithLabel(endLatLng, endText, '#ef4444');
+
+      if (badgeLatLng && roundedKm !== null) {
+        const [wx, wy] = latLonToWorldPx(badgeLatLng[0], badgeLatLng[1], z);
+        const px = wx - nw[0], py = wy - nw[1];
+        const badgeText = `Расстояние: ${roundedKm} км`;
+
+        ctx.font = '700 15px "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(badgeText).width;
+        const padX = 12, boxH = 32, boxW = tw + padX * 2;
+        const bx = px - boxW / 2, by = py - boxH / 2;
+
+        drawRoundedRect(ctx, bx, by, boxW, boxH, 8);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#2563eb';
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(badgeText, bx + padX, py + 0.5);
+      }
+
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      let copied = false;
+      if (navigator.clipboard && window.ClipboardItem) {
+        try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); copied = true; }
+        catch (e) { copied = false; }
+      }
+      if (copied) {
+        showToast(usedOsmFallback
+          ? `Маршрут (${roundedKm} км) скопирован на подложке OSM`
+          : `Маршрут (${roundedKm} км) скопирован в буфер`);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filePrefix}_${roundedKm}km.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Маршрут (${roundedKm} км) сохранён как PNG`, true);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Ошибка при создании картинки маршрута', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
   }
 
   // Экспорт Вкладки 1 (Ситплан +50 м)
@@ -2173,170 +2575,34 @@
     }
   });
 
-  // Экспорт Вкладки 2 (Маршрут доставки)
-  document.getElementById('btnCopyDeliveryImg').addEventListener('click', async () => {
-    if (!deliveryRouteCoords.length || !deliveryEndLatLng) {
-      showToast('Сначала постройте маршрут доставки', true);
-      return;
-    }
+  // Экспорт Вкладки 2 (Доставка)
+  document.getElementById('btnCopyDeliveryImg').addEventListener('click', () => {
+    exportRouteImage({
+      btn: document.getElementById('btnCopyDeliveryImg'),
+      routeCoords: deliveryRouteCoords,
+      startLatLng: deliveryStartLatLng,
+      endLatLng: deliveryEndLatLng,
+      badgeLatLng: deliveryBadgeLatLng,
+      roundedKm: deliveryDistRoundedKm,
+      startText: document.getElementById('startLabelInput').value.trim() || 'База',
+      endText: document.getElementById('endLabelInput').value.trim() || 'Объект',
+      filePrefix: 'dostavka'
+    });
+  });
 
-    const btn = document.getElementById('btnCopyDeliveryImg');
-    const origText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '⏳ Рендеринг маршрута...';
-
-    try {
-      let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-      const allPts = [...deliveryRouteCoords, deliveryStartLatLng, deliveryEndLatLng];
-      if (deliveryBadgeLatLng) allPts.push(deliveryBadgeLatLng);
-      allPts.forEach(([lat, lon]) => {
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat) maxLat = lat;
-        if (lon < minLon) minLon = lon;
-        if (lon > maxLon) maxLon = lon;
-      });
-
-      const padLat = Math.max((maxLat - minLat) * 0.18, 0.004);
-      const padLon = Math.max((maxLon - minLon) * 0.22, 0.008);
-      const south = minLat - padLat, north = maxLat + padLat;
-      const west = minLon - padLon, east = maxLon + padLon;
-
-      let exportCfg = basemapConfigs[currentBasemapKey];
-      let usedOsmFallback = false;
-      if (!exportCfg.cors) { exportCfg = basemapConfigs.osm; usedOsmFallback = true; }
-
-      let z = Math.min(exportCfg.maxZoom, 16), pxW, pxH, nw, se;
-      while (z >= 8) {
-        nw = latLonToWorldPx(north, west, z);
-        se = latLonToWorldPx(south, east, z);
-        pxW = Math.ceil(se[0] - nw[0]);
-        pxH = Math.ceil(se[1] - nw[1]);
-        if (Math.max(pxW, pxH) <= 1800) break;
-        z--;
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(pxW, 400);
-      canvas.height = Math.max(pxH, 300);
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const txMin = Math.floor(nw[0] / 256), txMax = Math.floor(se[0] / 256);
-      const tyMin = Math.floor(nw[1] / 256), tyMax = Math.floor(se[1] / 256);
-      const tileTasks = [];
-      for (let tx = txMin; tx <= txMax; tx++) {
-        for (let ty = tyMin; ty <= tyMax; ty++) {
-          const url = exportCfg.url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
-          tileTasks.push(loadTileImage(url).then(img => {
-            if (img) ctx.drawImage(img, Math.round(tx * 256 - nw[0]), Math.round(ty * 256 - nw[1]), 256, 256);
-          }));
-        }
-      }
-      await Promise.all(tileTasks);
-
-      // Рисуем линию маршрута
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      const routePx = deliveryRouteCoords.map(([lat, lon]) => {
-        const [wx, wy] = latLonToWorldPx(lat, lon, z);
-        return [wx - nw[0], wy - nw[1]];
-      });
-
-      ctx.beginPath();
-      routePx.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
-      ctx.lineWidth = 8.5;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-      ctx.stroke();
-
-      ctx.beginPath();
-      routePx.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = '#2563eb';
-      ctx.stroke();
-
-      function drawPinWithLabel(latlng, text, color) {
-        const [wx, wy] = latLonToWorldPx(latlng[0], latlng[1], z);
-        const px = wx - nw[0], py = wy - nw[1];
-
-        ctx.beginPath();
-        ctx.arc(px, py, 9, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
-
-        ctx.font = '700 14px "Segoe UI", system-ui, sans-serif';
-        ctx.textBaseline = 'middle';
-        const tw = ctx.measureText(text).width;
-        const padX = 9, boxH = 26, boxW = tw + padX * 2;
-        const bx = px + 14, by = py - boxH / 2;
-
-        drawRoundedRect(ctx, bx, by, boxW, boxH, 6);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = color;
-        ctx.stroke();
-
-        ctx.fillStyle = '#0f172a';
-        ctx.fillText(text, bx + padX, py + 0.5);
-      }
-
-      const startText = document.getElementById('startLabelInput').value.trim() || 'База';
-      const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
-      drawPinWithLabel(deliveryStartLatLng, startText, '#10b981');
-      drawPinWithLabel(deliveryEndLatLng, endText, '#ef4444');
-
-      if (deliveryBadgeLatLng && deliveryDistRoundedKm !== null) {
-        const [wx, wy] = latLonToWorldPx(deliveryBadgeLatLng[0], deliveryBadgeLatLng[1], z);
-        const px = wx - nw[0], py = wy - nw[1];
-        const badgeText = `Расстояние: ${deliveryDistRoundedKm} км`;
-
-        ctx.font = '700 15px "Segoe UI", system-ui, sans-serif';
-        ctx.textBaseline = 'middle';
-        const tw = ctx.measureText(badgeText).width;
-        const padX = 12, boxH = 32, boxW = tw + padX * 2;
-        const bx = px - boxW / 2, by = py - boxH / 2;
-
-        drawRoundedRect(ctx, bx, by, boxW, boxH, 8);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
-        ctx.fill();
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = '#2563eb';
-        ctx.stroke();
-
-        ctx.fillStyle = '#0f172a';
-        ctx.fillText(badgeText, bx + padX, py + 0.5);
-      }
-
-      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-      let copied = false;
-      if (navigator.clipboard && window.ClipboardItem) {
-        try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); copied = true; }
-        catch (e) { copied = false; }
-      }
-      if (copied) {
-        showToast(usedOsmFallback
-          ? `Маршрут (${deliveryDistRoundedKm} км) скопирован на подложке OSM`
-          : `Маршрут (${deliveryDistRoundedKm} км) скопирован в буфер`);
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `marshrut_${deliveryDistRoundedKm}km.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast(`Маршрут (${deliveryDistRoundedKm} км) сохранён как PNG`, true);
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Ошибка при создании картинки маршрута', true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = origText;
-    }
+  // Экспорт Вкладки 3 (Вывоз в РЭС)
+  document.getElementById('btnCopyResImg').addEventListener('click', () => {
+    exportRouteImage({
+      btn: document.getElementById('btnCopyResImg'),
+      routeCoords: resRouteCoords,
+      startLatLng: resStartLatLng,
+      endLatLng: resEndCoordsMap[activeResKey],
+      badgeLatLng: resBadgeLatLng,
+      roundedKm: resDistRoundedKm,
+      startText: document.getElementById('resStartLabelInput').value.trim() || 'Объект',
+      endText: document.getElementById('resEndLabelInput').value.trim() || RES_CONFIG[activeResKey].name,
+      filePrefix: `vyvoz_${activeResKey}`
+    });
   });
 
   // =========================================================================
