@@ -49,10 +49,7 @@
       z-index: 1;
     }
 
-    /* Затемнение фона на мобильных при открытой шторке (на ПК скрыто) */
-    .mobile-backdrop {
-      display: none;
-    }
+    .mobile-backdrop { display: none; }
 
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -91,9 +88,43 @@
       -webkit-overflow-scrolling: touch;
       padding-bottom: 10px;
     }
-    .sheet-handle {
-      display: none;
+    .sheet-handle { display: none; }
+
+    /* Вкладки Ситплан / Маршрут доставки */
+    .tabs-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(7, 11, 20, 0.45);
+      flex-shrink: 0;
     }
+    .tab-btn {
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s;
+      text-align: center;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     .toggle-btn {
       position: absolute;
@@ -122,7 +153,6 @@
     }
     .toggle-btn.collapsed { left: 14px; }
 
-    /* Верхняя правая группа кнопок: GPS + К трассе */
     .map-actions {
       position: absolute;
       top: 10px;
@@ -179,38 +209,77 @@
       50% { box-shadow: 0 0 18px rgba(250, 204, 21, 0.6); }
     }
 
-    /* Пульсирующий маркер GPS на карте */
-    .gps-marker-icon {
-      background: transparent !important;
-      border: none !important;
-    }
-    .gps-dot-wrap {
-      position: relative;
-      width: 24px;
-      height: 24px;
-    }
+    .gps-marker-icon { background: transparent !important; border: none !important; }
+    .gps-dot-wrap { position: relative; width: 24px; height: 24px; }
     .gps-dot-pulse {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
+      position: absolute; inset: 0; border-radius: 50%;
       background: rgba(56, 189, 248, 0.45);
       animation: gpsRing 2s ease-out infinite;
     }
     .gps-dot-core {
-      position: absolute;
-      top: 5px;
-      left: 5px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #0ea5e9;
-      border: 2.5px solid #ffffff;
+      position: absolute; top: 5px; left: 5px; width: 14px; height: 14px;
+      border-radius: 50%; background: #0ea5e9; border: 2.5px solid #ffffff;
       box-shadow: 0 0 10px rgba(14, 165, 233, 0.85);
     }
     @keyframes gpsRing {
       0% { transform: scale(0.6); opacity: 0.9; }
       100% { transform: scale(2.2); opacity: 0; }
     }
+
+    /* Маркеры маршрута доставки (База / Объект / Плашка расстояния) */
+    .route-pin-icon { background: transparent !important; border: none !important; }
+    .route-pin-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transform: translate(-10px, -50%);
+      white-space: nowrap;
+      pointer-events: auto;
+    }
+    .route-pin-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      flex-shrink: 0;
+    }
+    .route-pin-dot.start { background: #10b981; }
+    .route-pin-dot.end { background: #ef4444; }
+    .route-pin-label {
+      background: rgba(255, 255, 255, 0.96);
+      color: #0f172a;
+      border: 1.5px solid #1e293b;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+      user-select: none;
+    }
+    .route-pin-label.end { border-color: #ef4444; cursor: grab; }
+    .route-pin-label.end:active { cursor: grabbing; }
+    .route-pin-label.start { border-color: #10b981; }
+
+    .dist-badge-icon { background: transparent !important; border: none !important; }
+    .dist-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.96);
+      color: #0f172a;
+      border: 2px solid #2563eb;
+      border-radius: 8px;
+      padding: 5px 11px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transform: translate(-50%, -50%);
+      cursor: grab;
+      user-select: none;
+    }
+    .dist-badge:active { cursor: grabbing; }
 
     .header {
       padding: 15px 18px 14px;
@@ -240,9 +309,7 @@
       color: var(--muted);
       margin-top: 3px;
     }
-    .mobile-close-btn {
-      display: none;
-    }
+    .mobile-close-btn { display: none; }
 
     .section {
       padding: 14px 18px;
@@ -379,7 +446,7 @@
       color: var(--muted);
       margin-bottom: 4px;
     }
-    select {
+    select, input[type="text"] {
       width: 100%;
       background: rgba(7, 11, 20, 0.72);
       color: var(--num);
@@ -387,10 +454,11 @@
       border-radius: 8px;
       padding: 7px 10px;
       font-size: 12px;
+      font-family: inherit;
       outline: none;
       transition: 0.15s;
     }
-    select:focus {
+    select:focus, input[type="text"]:focus {
       border-color: var(--accent);
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.22);
     }
@@ -428,8 +496,15 @@
       font-family: 'Consolas', 'JetBrains Mono', monospace;
       font-weight: 600;
       font-size: 11.5px;
+      text-align: right;
     }
     .diag-val.ok { color: var(--ok); text-shadow: 0 0 10px rgba(45, 212, 191, 0.35); }
+    .diag-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
 
     .layer-list { display: flex; flex-direction: column; gap: 6px; max-height: 165px; overflow-y: auto; }
     .layer-item {
@@ -452,10 +527,7 @@
     }
     .layer-len { font-family: 'Consolas', monospace; font-size: 11px; color: var(--ok); font-weight: 600; }
 
-    .mleader-icon {
-      background: transparent !important;
-      border: none !important;
-    }
+    .mleader-icon { background: transparent !important; border: none !important; }
     .mleader-box {
       display: inline-block;
       background: rgba(255, 255, 255, 0.94);
@@ -524,10 +596,7 @@
       max-width: 90vw;
       text-align: center;
     }
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.warn { border-color: var(--warn); box-shadow: 0 8px 30px rgba(0,0,0,0.55), 0 0 18px rgba(250,204,21,0.25); }
 
     .leaflet-bar {
@@ -576,12 +645,8 @@
         pointer-events: none;
         transition: opacity 0.25s ease;
       }
-      .mobile-backdrop.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
+      .mobile-backdrop.active { opacity: 1; pointer-events: auto; }
 
-      /* Нижняя выдвижная шторка вместо боковой панели */
       .sidebar {
         position: fixed;
         top: auto;
@@ -616,7 +681,6 @@
         flex-shrink: 0;
       }
 
-      /* Кнопка открытия меню (всегда в левом верхнем углу) */
       .toggle-btn,
       .toggle-btn.collapsed {
         top: max(12px, env(safe-area-inset-top, 12px));
@@ -628,7 +692,6 @@
         z-index: 1002;
       }
 
-      /* Кнопка закрытия внутри шапки шторки */
       .mobile-close-btn {
         display: flex;
         align-items: center;
@@ -643,12 +706,7 @@
         cursor: pointer;
         flex-shrink: 0;
       }
-      .mobile-close-btn:active {
-        background: rgba(56, 189, 248, 0.25);
-        border-color: var(--accent);
-      }
 
-      /* Кнопки GPS и К трассе — крупнее под палец */
       .map-actions {
         top: max(12px, env(safe-area-inset-top, 12px));
         right: 58px;
@@ -662,7 +720,6 @@
       }
       .map-action-btn svg { width: 16px; height: 16px; }
 
-      /* Кнопки зума Leaflet крупнее */
       .leaflet-top.leaflet-right {
         top: max(2px, calc(env(safe-area-inset-top, 12px) - 10px));
         right: 2px;
@@ -674,18 +731,16 @@
         font-size: 18px !important;
       }
 
-      /* Удобные отступы и размеры контролов в шторке */
       .header { padding: 10px 16px 12px; }
       .section { padding: 13px 16px; }
       .btn { padding: 10px 12px; font-size: 13px; }
-      select { padding: 9px 10px; font-size: 13px; }
+      select, input[type="text"] { padding: 9px 10px; font-size: 13px; }
       .checkbox-row { font-size: 13px; padding: 4px 0; }
       .checkbox-row input { width: 18px; height: 18px; }
       .layer-item { padding: 8px 10px; font-size: 13px; }
       .layer-left input[type="checkbox"] { width: 17px; height: 17px; }
       .layer-item input[type="color"] { width: 26px; height: 26px; }
 
-      /* Нижний HUD по ширине экрана с учётом iPhone safe-area */
       .hud {
         left: 12px;
         right: 12px;
@@ -723,7 +778,7 @@
     <span>GPS</span>
   </button>
 
-  <button class="map-action-btn" id="btnFitRoute" title="Отцентровать и приблизить мою трассу">
+  <button class="map-action-btn" id="btnFitRoute" title="Отцентровать и приблизить">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="7" />
       <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
@@ -732,7 +787,7 @@
       <line x1="2" y1="12" x2="5" y2="12" />
       <line x1="19" y1="12" x2="22" y2="12" />
     </svg>
-    <span>К трассе</span>
+    <span id="btnFitLabel">К трассе</span>
   </button>
 </div>
 
@@ -757,63 +812,143 @@
     </svg>
     <div class="header-text">
       <h1>А-План Про</h1>
-      <p>Наложение DWG / DXF (МСК-16) на карты</p>
+      <p>Ситплан МСК-16 и маршрут доставки</p>
     </div>
     <button class="mobile-close-btn" id="mobileCloseBtn" title="Закрыть меню">✕</button>
   </div>
 
+  <!-- Переключатель вкладок -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" data-tab="plan">📍 Ситплан</button>
+    <button class="tab-btn" data-tab="delivery">🚚 Маршрут доставки</button>
+  </div>
+
   <div class="sidebar-scroll">
-    <!-- 1. Загрузка трассы -->
-    <div class="section">
-      <div class="section-title">1. Загрузка трассы (DWG / DXF)</div>
-      <div class="dropzone" id="dropzone">
-        <strong>Выберите или перетащите .DXF</strong>
-        <span>или нажмите Ctrl+V после команды C2M в AutoCAD</span>
-        <input type="file" id="fileInput" accept=".dxf,.txt" />
+    <!-- ================= ВКЛАДКА 1: СИТПЛАН ================= -->
+    <div id="tabPlan" class="tab-content active">
+      <div class="section">
+        <div class="section-title">1. Загрузка трассы (DWG / DXF)</div>
+        <div class="dropzone" id="dropzone">
+          <strong>Выберите или перетащите .DXF</strong>
+          <span>или нажмите Ctrl+V после команды C2M в AutoCAD</span>
+          <input type="file" id="fileInput" accept=".dxf,.txt" />
+        </div>
+        <button class="btn btn-violet btn-full" id="btnPasteCad">📋 Вставить из AutoCAD (C2M / Ctrl+V)</button>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnDemo">Демо (mif mid.dxf)</button>
+          <button class="btn btn-ok" id="btnRef">Проверить эталон</button>
+        </div>
       </div>
-      <button class="btn btn-violet btn-full" id="btnPasteCad">📋 Вставить из AutoCAD (C2M / Ctrl+V)</button>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="btnDemo">Демо (mif mid.dxf)</button>
-        <button class="btn btn-ok" id="btnRef">Проверить эталон</button>
-      </div>
-    </div>
 
-    <!-- 2. Слои чертежа -->
-    <div class="section">
-      <div class="section-title">2. Слои чертежа</div>
-      <div class="layer-list" id="layerList">
-        <div style="font-size:12px; color:var(--muted);">Загрузите DXF или вставьте трассу (Ctrl+V)</div>
+      <div class="section">
+        <div class="section-title">2. Слои чертежа</div>
+        <div class="layer-list" id="layerList">
+          <div style="font-size:12px; color:var(--muted);">Загрузите DXF или вставьте трассу (Ctrl+V)</div>
+        </div>
       </div>
-    </div>
 
-    <!-- 3. Выделенный блок экспорта картинки -->
-    <div class="section-export">
-      <div class="section-title">3. Экспорт снимка</div>
-      <button class="btn btn-neon btn-export-main" id="btnCopyImg">📷 Скопировать как картинку (+50 м)</button>
-    </div>
-
-    <!-- 4. Координаты и подложка -->
-    <div class="section">
-      <div class="section-title">4. Координаты и подложка</div>
-      <div class="field">
-        <label for="crsSelect">Проекция / Система координат</label>
-        <select id="crsSelect">
-          <option value="msk16_z1" selected>МСК-16 Зона 1 (Татарстан — Эталон 49°02')</option>
-          <option value="msk16_z2">МСК-16 Зона 2 (Восток РТ, 52°02')</option>
-          <option value="wgs84">WGS-84 (градусы Lat/Lon)</option>
-        </select>
+      <div class="section-export">
+        <div class="section-title">3. Экспорт снимка</div>
+        <button class="btn btn-neon btn-export-main" id="btnCopyImg">📷 Скопировать как картинку (+50 м)</button>
       </div>
-      <div class="grid-2">
-        <div class="field" style="margin-bottom:0">
-          <label for="unitsSelect">Единицы DXF</label>
-          <select id="unitsSelect">
-            <option value="1" selected>Метры (1:1)</option>
-            <option value="0.001">Миллиметры (÷1000)</option>
+
+      <div class="section">
+        <div class="section-title">4. Координаты и подложка</div>
+        <div class="field">
+          <label for="crsSelect">Проекция / Система координат</label>
+          <select id="crsSelect">
+            <option value="msk16_z1" selected>МСК-16 Зона 1 (Татарстан — Эталон 49°02')</option>
+            <option value="msk16_z2">МСК-16 Зона 2 (Восток РТ, 52°02')</option>
+            <option value="wgs84">WGS-84 (градусы Lat/Lon)</option>
           </select>
         </div>
+        <div class="grid-2">
+          <div class="field" style="margin-bottom:0">
+            <label for="unitsSelect">Единицы DXF</label>
+            <select id="unitsSelect">
+              <option value="1" selected>Метры (1:1)</option>
+              <option value="0.001">Миллиметры (÷1000)</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label for="basemapSelect">Подложка карты</label>
+            <select id="basemapSelect">
+              <option value="osm" selected>OpenStreetMap</option>
+              <option value="dgis">2ГИС</option>
+              <option value="google_hybrid">Google Гибрид</option>
+              <option value="google_sat">Google Спутник</option>
+              <option value="esri">ESRI Спутник</option>
+            </select>
+          </div>
+        </div>
+        <label class="checkbox-row" style="margin-top: 10px;">
+          <input type="checkbox" id="swapXY" />
+          <span>Поменять X и Y местами (X=Север, Y=Восток)</span>
+        </label>
+      </div>
+
+      <div class="section">
+        <div class="section-title">5. Диагностика и ведомость</div>
+        <div class="diag-card">
+          <div class="diag-row"><span class="diag-label">Источник:</span><span class="diag-val" id="dFile">—</span></div>
+          <div class="diag-row"><span class="diag-label">Объектов / вершин:</span><span class="diag-val" id="dCount">0 / 0</span></div>
+          <div class="diag-row"><span class="diag-label">Общая длина:</span><span class="diag-val ok" id="dLen">0.0 м</span></div>
+          <div class="diag-row"><span class="diag-label">1-я вершина (МСК):</span><span class="diag-val" id="dRaw">—</span></div>
+          <div class="diag-row"><span class="diag-label">1-я вершина (WGS-84):</span><span class="diag-val ok" id="dWgs">—</span></div>
+        </div>
+        <button class="btn btn-full" id="btnExportCsv">📄 Выгрузить ведомость вершин (CSV)</button>
+      </div>
+    </div>
+
+    <!-- ================= ВКЛАДКА 2: МАРШРУТ ДОСТАВКИ ================= -->
+    <div id="tabDelivery" class="tab-content">
+      <div class="section">
+        <div class="section-title">1. Параметры маршрута</div>
+        <div class="diag-card">
+          <div class="diag-row">
+            <span class="diag-label">Старт:</span>
+            <span class="diag-val" style="font-family:inherit; font-size:11px;">Казань, Салиха Батыева, 19</span>
+          </div>
+          <div class="diag-row">
+            <span class="diag-label">В проект (округл. вверх):</span>
+            <span class="diag-val ok" id="delDistRound">—</span>
+          </div>
+          <div class="diag-row">
+            <span class="diag-label">Точно по дорогам:</span>
+            <span class="diag-val" id="delDistExact">—</span>
+          </div>
+          <div class="diag-row">
+            <span class="diag-label">Время в пути:</span>
+            <span class="diag-val" id="delDuration">—</span>
+          </div>
+        </div>
+        <p class="diag-hint">Маркер <b>«Объект»</b> и плашку <b>«Расстояние»</b> можно перетаскивать мышкой прямо на карте.</p>
+      </div>
+
+      <div class="section-export">
+        <div class="section-title">2. Экспорт маршрута</div>
+        <button class="btn btn-neon btn-export-main" id="btnCopyDeliveryImg">📷 Скопировать маршрут как картинку</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">3. Подписи точек</div>
+        <div class="grid-2">
+          <div class="field" style="margin-bottom:0">
+            <label for="startLabelInput">Точка старта</label>
+            <input type="text" id="startLabelInput" value="База" />
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label for="endLabelInput">Точка финиша</label>
+            <input type="text" id="endLabelInput" value="Объект" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" id="btnResetDeliveryEnd" style="margin-top:10px;">🔄 Сбросить финиш в центр объекта</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">4. Подложка карты</div>
         <div class="field" style="margin-bottom:0">
-          <label for="basemapSelect">Подложка карты</label>
-          <select id="basemapSelect">
+          <select id="basemapSelectDelivery">
             <option value="osm" selected>OpenStreetMap</option>
             <option value="dgis">2ГИС</option>
             <option value="google_hybrid">Google Гибрид</option>
@@ -822,23 +957,6 @@
           </select>
         </div>
       </div>
-      <label class="checkbox-row" style="margin-top: 10px;">
-        <input type="checkbox" id="swapXY" />
-        <span>Поменять X и Y местами (X=Север, Y=Восток)</span>
-      </label>
-    </div>
-
-    <!-- 5. Диагностика и CSV -->
-    <div class="section">
-      <div class="section-title">5. Диагностика и ведомость</div>
-      <div class="diag-card">
-        <div class="diag-row"><span class="diag-label">Источник:</span><span class="diag-val" id="dFile">—</span></div>
-        <div class="diag-row"><span class="diag-label">Объектов / вершин:</span><span class="diag-val" id="dCount">0 / 0</span></div>
-        <div class="diag-row"><span class="diag-label">Общая длина:</span><span class="diag-val ok" id="dLen">0.0 м</span></div>
-        <div class="diag-row"><span class="diag-label">1-я вершина (МСК):</span><span class="diag-val" id="dRaw">—</span></div>
-        <div class="diag-row"><span class="diag-label">1-я вершина (WGS-84):</span><span class="diag-val ok" id="dWgs">—</span></div>
-      </div>
-      <button class="btn btn-full" id="btnExportCsv">📄 Выгрузить ведомость вершин (CSV)</button>
     </div>
   </div>
 </aside>
@@ -846,7 +964,7 @@
 <div class="hud">
   <div class="hud-box">
     <div class="hud-item"><span>WGS-84:</span><strong id="hudCoords">55.835171, 49.246790</strong></div>
-    <div class="hud-item"><span>Длина:</span><strong class="ok" id="hudLen">0.0 м</strong></div>
+    <div class="hud-item"><span id="hudLenLabel">Длина:</span><strong class="ok" id="hudLen">0.0 м</strong></div>
   </div>
 </div>
 
@@ -922,7 +1040,7 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
-  // Управление боковой панелью (ПК) / нижней шторкой (Мобильный)
+  // Управление боковой панелью / шторкой
   const sidebarEl = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('toggleSidebar');
   const mobileBackdrop = document.getElementById('mobileBackdrop');
@@ -940,16 +1058,11 @@
     }
   }
 
-  toggleBtn.addEventListener('click', () => {
-    setSidebarCollapsed(!sidebarEl.classList.contains('collapsed'));
-  });
+  toggleBtn.addEventListener('click', () => setSidebarCollapsed(!sidebarEl.classList.contains('collapsed')));
   mobileBackdrop.addEventListener('click', () => setSidebarCollapsed(true));
   mobileCloseBtn.addEventListener('click', () => setSidebarCollapsed(true));
+  if (isMobileView()) setSidebarCollapsed(true);
 
-  // На телефоне при запуске сразу сворачиваем шторку, чтобы была видна карта
-  if (isMobileView()) {
-    setSidebarCollapsed(true);
-  }
   window.addEventListener('resize', () => {
     const collapsed = sidebarEl.classList.contains('collapsed');
     if (isMobileView()) {
@@ -1246,7 +1359,7 @@
   }
 
   // =========================================================================
-  // 3. КАРТА LEAFLET И ПОДЛОЖКИ (OSM ПО УМОЛЧАНИЮ + 2ГИС)
+  // 3. КАРТА LEAFLET И ПОДЛОЖКИ
   // =========================================================================
   const map = L.map('map', {
     zoomControl: false,
@@ -1271,18 +1384,22 @@
   let currentBasemapKey = 'osm';
   let currentBasemap = basemaps.osm.addTo(map);
 
-  document.getElementById('basemapSelect').addEventListener('change', (e) => {
-    currentBasemapKey = e.target.value;
+  function setBasemap(key) {
+    currentBasemapKey = key;
+    document.getElementById('basemapSelect').value = key;
+    document.getElementById('basemapSelectDelivery').value = key;
     map.removeLayer(currentBasemap);
     currentBasemap = basemaps[currentBasemapKey].addTo(map);
-  });
+  }
+  document.getElementById('basemapSelect').addEventListener('change', (e) => setBasemap(e.target.value));
+  document.getElementById('basemapSelectDelivery').addEventListener('change', (e) => setBasemap(e.target.value));
 
   map.on('mousemove', (e) => {
     document.getElementById('hudCoords').textContent = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
   });
 
   // =========================================================================
-  // 3.5. МОДУЛЬ GPS (ЖИВОЕ ПОЗИЦИОНИРОВАНИЕ + РАССТОЯНИЕ ДО ТРАССЫ)
+  // 3.5. МОДУЛЬ GPS
   // =========================================================================
   const btnGps = document.getElementById('btnGps');
   let gpsWatchId = null;
@@ -1301,12 +1418,8 @@
     const dx = bx - ax, dy = by - ay;
     const len2 = dx * dx + dy * dy;
     let t = 0;
-    if (len2 > 0) {
-      t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
-    }
-    const projX = ax + t * dx;
-    const projY = ay + t * dy;
-    return Math.hypot(px - projX, py - projY);
+    if (len2 > 0) t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
   }
 
   function distanceToNearestRouteM(lat, lon) {
@@ -1356,12 +1469,7 @@
 
     if (!gpsAccuracyCircle) {
       gpsAccuracyCircle = L.circle(latlng, {
-        radius: acc,
-        color: '#38bdf8',
-        weight: 1.5,
-        fillColor: '#38bdf8',
-        fillOpacity: 0.14,
-        interactive: false
+        radius: acc, color: '#38bdf8', weight: 1.5, fillColor: '#38bdf8', fillOpacity: 0.14, interactive: false
       }).addTo(gpsLayerGroup);
     } else {
       gpsAccuracyCircle.setLatLng(latlng).setRadius(acc);
@@ -1386,9 +1494,7 @@
         iconSize: [24, 24],
         iconAnchor: [12, 12]
       });
-      gpsMarker = L.marker(latlng, { icon: gpsIcon, zIndexOffset: 1000 })
-        .bindPopup(popupHtml)
-        .addTo(gpsLayerGroup);
+      gpsMarker = L.marker(latlng, { icon: gpsIcon, zIndexOffset: 1000 }).bindPopup(popupHtml).addTo(gpsLayerGroup);
     } else {
       gpsMarker.setLatLng(latlng).setPopupContent(popupHtml);
     }
@@ -1404,49 +1510,36 @@
 
   function handleGpsError(err) {
     stopGps(true);
-    if (err.code === 1) {
-      showToast('Доступ к геолокации запрещён в браузере', true);
-    } else if (err.code === 2) {
-      showToast('Сигнал GPS недоступен', true);
-    } else if (err.code === 3) {
-      showToast('Не удалось получить координаты (таймаут GPS)', true);
-    } else {
-      showToast('Ошибка определения GPS-координат', true);
-    }
+    if (err.code === 1) showToast('Доступ к геолокации запрещён в браузере', true);
+    else if (err.code === 2) showToast('Сигнал GPS недоступен', true);
+    else if (err.code === 3) showToast('Не удалось получить координаты (таймаут GPS)', true);
+    else showToast('Ошибка определения GPS-координат', true);
   }
 
   btnGps.addEventListener('click', () => {
-    if (gpsWatchId !== null) {
-      stopGps(false);
-      return;
-    }
-    if (!navigator.geolocation) {
-      showToast('Ваш браузер не поддерживает GPS-геолокацию', true);
-      return;
-    }
-    if (!window.isSecureContext) {
-      showToast('GPS работает только по HTTPS (откройте через GitHub Pages)', true);
-      return;
-    }
+    if (gpsWatchId !== null) { stopGps(false); return; }
+    if (!navigator.geolocation) { showToast('Браузер не поддерживает GPS', true); return; }
+    if (!window.isSecureContext) { showToast('GPS работает только по HTTPS (GitHub Pages)', true); return; }
     gpsFirstFix = true;
     btnGps.classList.add('gps-searching');
     showToast('Поиск спутников GPS...');
     gpsWatchId = navigator.geolocation.watchPosition(
-      updateGpsPosition,
-      handleGpsError,
+      updateGpsPosition, handleGpsError,
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
     );
   });
 
   // =========================================================================
-  // 4. СОСТОЯНИЕ, ОТРИСОВКА И СЛОИ
+  // 4. СОСТОЯНИЕ, ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК И ОТРИСОВКА СИТПЛАНА
   // =========================================================================
+  let activeTab = 'plan'; // 'plan' | 'delivery'
   let parsedEntities = [];
   let renderedGeometries = [];
   let currentFileName = '';
   let layerGroups = {};
   let layerStyles = {};
   let refMarker = null;
+  let lastPlanLenText = '0.0 м';
 
   function calcPlanLength(pts, scale) {
     let len = 0;
@@ -1456,7 +1549,26 @@
     return len;
   }
 
+  function getObjectCenterLatLng() {
+    const geoms = renderedGeometries.filter(g => g.type !== 'MLEADER');
+    const source = geoms.length ? geoms : renderedGeometries;
+    if (!source.length) return null;
+    const bounds = L.latLngBounds();
+    source.forEach(g => {
+      g.latlngs.forEach(ll => {
+        if (!isNaN(ll[0]) && !isNaN(ll[1])) bounds.extend(ll);
+      });
+    });
+    if (!bounds.isValid()) return null;
+    const c = bounds.getCenter();
+    return [c.lat, c.lng];
+  }
+
   function fitToRoute(animate = true) {
+    if (activeTab === 'delivery') {
+      fitToDeliveryRoute(animate);
+      return;
+    }
     if (!renderedGeometries.length) {
       showToast('Сначала загрузите трассу (DXF или Ctrl+V)', true);
       return;
@@ -1484,6 +1596,16 @@
 
   document.getElementById('btnFitRoute').addEventListener('click', () => fitToRoute(true));
 
+  function setPlanLayersVisible(show) {
+    Object.keys(layerGroups).forEach(lname => {
+      if (show && layerStyles[lname] && layerStyles[lname].visible) {
+        if (!map.hasLayer(layerGroups[lname])) layerGroups[lname].addTo(map);
+      } else {
+        if (map.hasLayer(layerGroups[lname])) map.removeLayer(layerGroups[lname]);
+      }
+    });
+  }
+
   function renderAll(fitMap = true) {
     Object.values(layerGroups).forEach(g => map.removeLayer(g));
     layerGroups = {};
@@ -1502,15 +1624,11 @@
     parsedEntities.forEach((ent, idx) => {
       const lname = ent.layer || '0';
       if (!layerStyles[lname]) {
-        layerStyles[lname] = {
-          visible: true,
-          color: ent.color || '#ef4444',
-          override: false
-        };
+        layerStyles[lname] = { visible: true, color: ent.color || '#ef4444', override: false };
       }
       if (!layerGroups[lname]) {
         layerGroups[lname] = L.layerGroup();
-        if (layerStyles[lname].visible) layerGroups[lname].addTo(map);
+        if (activeTab === 'plan' && layerStyles[lname].visible) layerGroups[lname].addTo(map);
       }
 
       const latlngs = ent.pts.map(pt => {
@@ -1589,10 +1707,11 @@
       shape.addTo(layerGroups[lname]);
     });
 
+    lastPlanLenText = `${totalLen.toFixed(1)} м`;
     document.getElementById('dFile').textContent = currentFileName || '—';
     document.getElementById('dCount').textContent = `${parsedEntities.length} / ${totalVerts}`;
-    document.getElementById('dLen').textContent = `${totalLen.toFixed(1)} м`;
-    document.getElementById('hudLen').textContent = `${totalLen.toFixed(1)} м`;
+    document.getElementById('dLen').textContent = lastPlanLenText;
+    if (activeTab === 'plan') document.getElementById('hudLen').textContent = lastPlanLenText;
     document.getElementById('dRaw').textContent = firstRaw || '—';
     document.getElementById('dWgs').textContent = firstWgs || '—';
 
@@ -1618,8 +1737,10 @@
         const col = row.querySelector('input[type="color"]');
         chk.addEventListener('change', () => {
           st.visible = chk.checked;
-          if (st.visible) layerGroups[lname].addTo(map);
-          else map.removeLayer(layerGroups[lname]);
+          if (activeTab === 'plan') {
+            if (st.visible) layerGroups[lname].addTo(map);
+            else map.removeLayer(layerGroups[lname]);
+          }
         });
         col.addEventListener('input', () => {
           st.color = col.value;
@@ -1630,13 +1751,217 @@
       });
     }
 
+    // При загрузке новой трассы обновляем конечную точку доставки
     if (fitMap && renderedGeometries.length) {
-      fitToRoute(false);
+      deliveryEndLatLng = getObjectCenterLatLng();
+      deliveryBadgeLatLng = null;
+      if (activeTab === 'plan') {
+        fitToRoute(false);
+      } else {
+        buildDeliveryRoute(true);
+      }
     }
   }
 
   // =========================================================================
-  // 5. ЭКСПОРТ КАРТИНКИ В БУФЕР ОБМЕНА (РОВНО +50 М ВО ВСЕ СТОРОНЫ)
+  // 4.5. ВКЛАДКА 2: МАРШРУТ ДОСТАВКИ (Салиха Батыева, 19 -> Объект)
+  // =========================================================================
+  const BASE_COORDS = [55.741700, 49.217900]; // г. Казань, ул. Салиха Батыева, д. 19
+  let deliveryLayerGroup = L.layerGroup();
+  let deliveryEndLatLng = null;
+  let deliveryRouteCoords = [];
+  let deliveryDistRoundedKm = null;
+  let deliveryDistExactKm = null;
+  let deliveryBadgeLatLng = null;
+  let deliveryStartMarker = null;
+  let deliveryEndMarker = null;
+  let deliveryBadgeMarker = null;
+
+  function makePinIcon(label, kind) {
+    return L.divIcon({
+      className: 'route-pin-icon',
+      html: `<div class="route-pin-wrap"><div class="route-pin-dot ${kind}"></div><div class="route-pin-label ${kind}">${escapeHtml(label)}</div></div>`,
+      iconSize: null,
+      iconAnchor: [0, 0]
+    });
+  }
+
+  function makeDistBadgeIcon(km) {
+    return L.divIcon({
+      className: 'dist-badge-icon',
+      html: `<div class="dist-badge" title="Перетащите, чтобы сдвинуть плашку">Расстояние: ${km} км</div>`,
+      iconSize: null,
+      iconAnchor: [0, 0]
+    });
+  }
+
+  function updateDeliveryLabels() {
+    const startText = document.getElementById('startLabelInput').value.trim() || 'База';
+    const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
+    if (deliveryStartMarker) deliveryStartMarker.setIcon(makePinIcon(startText, 'start'));
+    if (deliveryEndMarker) deliveryEndMarker.setIcon(makePinIcon(endText, 'end'));
+  }
+
+  document.getElementById('startLabelInput').addEventListener('input', updateDeliveryLabels);
+  document.getElementById('endLabelInput').addEventListener('input', updateDeliveryLabels);
+
+  function fitToDeliveryRoute(animate = true) {
+    const bounds = L.latLngBounds();
+    if (deliveryRouteCoords.length) {
+      deliveryRouteCoords.forEach(ll => bounds.extend(ll));
+    } else {
+      bounds.extend(BASE_COORDS);
+      if (deliveryEndLatLng) bounds.extend(deliveryEndLatLng);
+    }
+    if (bounds.isValid()) {
+      const mobile = isMobileView();
+      const leftPad = (sidebarEl.classList.contains('collapsed') || mobile) ? 40 : 395;
+      const opts = { paddingTopLeft: [leftPad, 65], paddingBottomRight: [45, 65], maxZoom: 16 };
+      if (animate) map.flyToBounds(bounds, { ...opts, duration: 0.65 });
+      else map.fitBounds(bounds, opts);
+    }
+  }
+
+  async function buildDeliveryRoute(fitMap = true) {
+    if (!deliveryEndLatLng) {
+      deliveryEndLatLng = getObjectCenterLatLng() || [55.835171, 49.246790];
+    }
+
+    document.getElementById('delDistRound').textContent = 'расчёт...';
+    document.getElementById('delDistExact').textContent = '—';
+    document.getElementById('delDuration').textContent = '—';
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${BASE_COORDS[1]},${BASE_COORDS[0]};${deliveryEndLatLng[1]},${deliveryEndLatLng[0]}?overview=full&geometries=geojson`;
+
+    let coords = [BASE_COORDS, deliveryEndLatLng];
+    let exactKm = map.distance(BASE_COORDS, deliveryEndLatLng) / 1000.0;
+    let durationMin = null;
+    let isFallback = false;
+
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('OSRM HTTP ' + resp.status);
+      const data = await resp.json();
+      if (data.routes && data.routes.length) {
+        const r = data.routes[0];
+        coords = r.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+        exactKm = r.distance / 1000.0;
+        durationMin = Math.round(r.duration / 60);
+      } else {
+        isFallback = true;
+      }
+    } catch (e) {
+      isFallback = true;
+      showToast('Сервер маршрутов недоступен — показана прямая линия', true);
+    }
+
+    deliveryRouteCoords = coords;
+    deliveryDistExactKm = exactKm;
+    deliveryDistRoundedKm = Math.max(1, Math.ceil(exactKm));
+
+    document.getElementById('delDistRound').textContent = `${deliveryDistRoundedKm} км`;
+    document.getElementById('delDistExact').textContent = `${exactKm.toFixed(2)} км`;
+    document.getElementById('delDuration').textContent = durationMin !== null ? `~${durationMin} мин` : '—';
+    if (activeTab === 'delivery') {
+      document.getElementById('hudLen').textContent = `${deliveryDistRoundedKm} км`;
+    }
+
+    // Середина маршрута для плашки расстояния
+    const midIdx = Math.floor(coords.length / 2);
+    deliveryBadgeLatLng = coords[midIdx] || [(BASE_COORDS[0] + deliveryEndLatLng[0]) / 2, (BASE_COORDS[1] + deliveryEndLatLng[1]) / 2];
+
+    deliveryLayerGroup.clearLayers();
+
+    // Подложка линии + основная линия маршрута
+    L.polyline(coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(deliveryLayerGroup);
+    L.polyline(coords, {
+      color: '#2563eb',
+      weight: 4.5,
+      opacity: 0.95,
+      dashArray: isFallback ? '10 8' : null
+    }).addTo(deliveryLayerGroup);
+
+    const startText = document.getElementById('startLabelInput').value.trim() || 'База';
+    const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
+
+    deliveryStartMarker = L.marker(BASE_COORDS, {
+      icon: makePinIcon(startText, 'start'),
+      zIndexOffset: 500
+    }).addTo(deliveryLayerGroup);
+
+    deliveryEndMarker = L.marker(deliveryEndLatLng, {
+      icon: makePinIcon(endText, 'end'),
+      draggable: true,
+      zIndexOffset: 600
+    }).addTo(deliveryLayerGroup);
+
+    deliveryEndMarker.on('dragend', (e) => {
+      const p = e.target.getLatLng();
+      deliveryEndLatLng = [p.lat, p.lng];
+      buildDeliveryRoute(false);
+    });
+
+    deliveryBadgeMarker = L.marker(deliveryBadgeLatLng, {
+      icon: makeDistBadgeIcon(deliveryDistRoundedKm),
+      draggable: true,
+      zIndexOffset: 700
+    }).addTo(deliveryLayerGroup);
+
+    deliveryBadgeMarker.on('drag', (e) => {
+      const p = e.target.getLatLng();
+      deliveryBadgeLatLng = [p.lat, p.lng];
+    });
+
+    if (activeTab === 'delivery' && !map.hasLayer(deliveryLayerGroup)) {
+      deliveryLayerGroup.addTo(map);
+    }
+    if (fitMap) fitToDeliveryRoute(true);
+  }
+
+  document.getElementById('btnResetDeliveryEnd').addEventListener('click', () => {
+    const center = getObjectCenterLatLng();
+    if (!center) {
+      showToast('Сначала загрузите объект на вкладке «Ситплан»', true);
+      return;
+    }
+    deliveryEndLatLng = center;
+    buildDeliveryRoute(true);
+  });
+
+  // Переключение вкладок
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      if (target === activeTab) return;
+      activeTab = target;
+
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
+      document.getElementById('tabPlan').classList.toggle('active', activeTab === 'plan');
+      document.getElementById('tabDelivery').classList.toggle('active', activeTab === 'delivery');
+
+      if (activeTab === 'delivery') {
+        setPlanLayersVisible(false);
+        if (!map.hasLayer(deliveryLayerGroup)) deliveryLayerGroup.addTo(map);
+        document.getElementById('btnFitLabel').textContent = 'К маршруту';
+        document.getElementById('hudLenLabel').textContent = 'Маршрут:';
+        document.getElementById('hudLen').textContent = deliveryDistRoundedKm ? `${deliveryDistRoundedKm} км` : '—';
+        if (!renderedGeometries.length && !deliveryEndLatLng) {
+          showToast('Объект не загружен — показан тестовый финиш (перетащите маркер)', true);
+        }
+        buildDeliveryRoute(true);
+      } else {
+        if (map.hasLayer(deliveryLayerGroup)) map.removeLayer(deliveryLayerGroup);
+        setPlanLayersVisible(true);
+        document.getElementById('btnFitLabel').textContent = 'К трассе';
+        document.getElementById('hudLenLabel').textContent = 'Длина:';
+        document.getElementById('hudLen').textContent = lastPlanLenText;
+        if (renderedGeometries.length) fitToRoute(true);
+      }
+    });
+  });
+
+  // =========================================================================
+  // 5. ЭКСПОРТ КАРТИНОК В БУФЕР ОБМЕНА (СИТПЛАН +50 М и МАРШРУТ ДОСТАВКИ)
   // =========================================================================
   function latLonToWorldPx(lat, lon, z) {
     const n = 256 * Math.pow(2, z);
@@ -1656,12 +1981,24 @@
     });
   }
 
+  function drawRoundedRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  // Экспорт Вкладки 1 (Ситплан +50 м)
   document.getElementById('btnCopyImg').addEventListener('click', async () => {
     const visibleGeoms = renderedGeometries.filter(g => layerStyles[g.layer] && layerStyles[g.layer].visible);
-    if (!visibleGeoms.length) {
-      showToast('Сначала загрузите трассу', true);
-      return;
-    }
+    if (!visibleGeoms.length) { showToast('Сначала загрузите трассу', true); return; }
 
     const btn = document.getElementById('btnCopyImg');
     const origText = btn.textContent;
@@ -1684,20 +2021,14 @@
       const dLat = marginM / 111320.0;
       const dLon = marginM / (111320.0 * Math.cos(avgLatRad));
 
-      const south = minLat - dLat;
-      const north = maxLat + dLat;
-      const west = minLon - dLon;
-      const east = maxLon + dLon;
+      const south = minLat - dLat, north = maxLat + dLat;
+      const west = minLon - dLon, east = maxLon + dLon;
 
       let exportCfg = basemapConfigs[currentBasemapKey];
       let usedOsmFallback = false;
-      if (!exportCfg.cors) {
-        exportCfg = basemapConfigs.osm;
-        usedOsmFallback = true;
-      }
+      if (!exportCfg.cors) { exportCfg = basemapConfigs.osm; usedOsmFallback = true; }
 
-      let z = exportCfg.maxZoom;
-      let pxW, pxH, nw, se;
+      let z = exportCfg.maxZoom, pxW, pxH, nw, se;
       while (z >= 10) {
         nw = latLonToWorldPx(north, west, z);
         se = latLonToWorldPx(south, east, z);
@@ -1714,25 +2045,15 @@
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const txMin = Math.floor(nw[0] / 256);
-      const txMax = Math.floor(se[0] / 256);
-      const tyMin = Math.floor(nw[1] / 256);
-      const tyMax = Math.floor(se[1] / 256);
-
+      const txMin = Math.floor(nw[0] / 256), txMax = Math.floor(se[0] / 256);
+      const tyMin = Math.floor(nw[1] / 256), tyMax = Math.floor(se[1] / 256);
       const tileTasks = [];
       for (let tx = txMin; tx <= txMax; tx++) {
         for (let ty = tyMin; ty <= tyMax; ty++) {
-          const url = exportCfg.url
-            .replace('{z}', z)
-            .replace('{x}', tx)
-            .replace('{y}', ty);
-          tileTasks.push(
-            loadTileImage(url).then(img => {
-              if (img) {
-                ctx.drawImage(img, Math.round(tx * 256 - nw[0]), Math.round(ty * 256 - nw[1]), 256, 256);
-              }
-            })
-          );
+          const url = exportCfg.url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
+          tileTasks.push(loadTileImage(url).then(img => {
+            if (img) ctx.drawImage(img, Math.round(tx * 256 - nw[0]), Math.round(ty * 256 - nw[1]), 256, 256);
+          }));
         }
       }
       await Promise.all(tileTasks);
@@ -1751,32 +2072,22 @@
         if (pts.length === 1) {
           ctx.beginPath();
           ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = '#ffffff';
-          ctx.stroke();
+          ctx.fillStyle = color; ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.stroke();
         } else if (g.closed) {
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
           ctx.closePath();
-          ctx.fillStyle = hexToRgba(color, 0.28);
-          ctx.fill();
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = color;
-          ctx.stroke();
+          ctx.fillStyle = hexToRgba(color, 0.28); ctx.fill();
+          ctx.lineWidth = 3; ctx.strokeStyle = color; ctx.stroke();
         } else {
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
-          ctx.lineWidth = 6;
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-          ctx.stroke();
+          ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.stroke();
 
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
-          ctx.lineWidth = 3.5;
-          ctx.strokeStyle = color;
-          ctx.stroke();
+          ctx.lineWidth = 3.5; ctx.strokeStyle = color; ctx.stroke();
         }
       });
 
@@ -1789,57 +2100,33 @@
           const [wx, wy] = latLonToWorldPx(lat, lon, z);
           return [wx - nw[0], wy - nw[1]];
         });
-
         if (pts.length >= 2) {
           ctx.beginPath();
           pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = color;
-          ctx.stroke();
-
+          ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.stroke();
           ctx.beginPath();
           ctx.arc(pts[0][0], pts[0][1], 4, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
+          ctx.fillStyle = color; ctx.fill();
         }
-
         const anchor = pts[pts.length - 1];
         const textLines = (g.label || 'Выноска').split('\n');
-        const lineH = 16;
-        const padX = 7, padY = 4;
+        const lineH = 16, padX = 7, padY = 4;
         let maxW = 0;
-        textLines.forEach(tl => {
-          const w = ctx.measureText(tl).width;
-          if (w > maxW) maxW = w;
-        });
-        const boxW = maxW + padX * 2;
-        const boxH = textLines.length * lineH + padY * 2;
-        const bx = anchor[0] + 4;
-        const by = anchor[1] - boxH / 2;
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
-        ctx.fillRect(bx, by, boxW, boxH);
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = color;
-        ctx.strokeRect(bx, by, boxW, boxH);
-
+        textLines.forEach(tl => { const w = ctx.measureText(tl).width; if (w > maxW) maxW = w; });
+        const boxW = maxW + padX * 2, boxH = textLines.length * lineH + padY * 2;
+        const bx = anchor[0] + 4, by = anchor[1] - boxH / 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.94)'; ctx.fillRect(bx, by, boxW, boxH);
+        ctx.lineWidth = 1.5; ctx.strokeStyle = color; ctx.strokeRect(bx, by, boxW, boxH);
         ctx.fillStyle = color;
-        textLines.forEach((tl, idx) => {
-          ctx.fillText(tl, bx + padX, by + padY + idx * lineH);
-        });
+        textLines.forEach((tl, idx) => ctx.fillText(tl, bx + padX, by + padY + idx * lineH));
       });
 
       const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
       let copied = false;
       if (navigator.clipboard && window.ClipboardItem) {
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-          copied = true;
-        } catch (clipErr) {
-          copied = false;
-        }
+        try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); copied = true; }
+        catch (e) { copied = false; }
       }
-
       if (copied) {
         showToast(usedOsmFallback
           ? 'Скопировано (+50 м) на подложке OSM (Google/2ГИС блокируют экспорт)'
@@ -1856,6 +2143,174 @@
     } catch (err) {
       console.error(err);
       showToast('Ошибка при создании картинки', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
+
+  // Экспорт Вкладки 2 (Маршрут доставки)
+  document.getElementById('btnCopyDeliveryImg').addEventListener('click', async () => {
+    if (!deliveryRouteCoords.length || !deliveryEndLatLng) {
+      showToast('Сначала постройте маршрут доставки', true);
+      return;
+    }
+
+    const btn = document.getElementById('btnCopyDeliveryImg');
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Рендеринг маршрута...';
+
+    try {
+      let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+      const allPts = [...deliveryRouteCoords, BASE_COORDS, deliveryEndLatLng];
+      if (deliveryBadgeLatLng) allPts.push(deliveryBadgeLatLng);
+      allPts.forEach(([lat, lon]) => {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+      });
+
+      const padLat = Math.max((maxLat - minLat) * 0.18, 0.004);
+      const padLon = Math.max((maxLon - minLon) * 0.22, 0.008);
+      const south = minLat - padLat, north = maxLat + padLat;
+      const west = minLon - padLon, east = maxLon + padLon;
+
+      let exportCfg = basemapConfigs[currentBasemapKey];
+      let usedOsmFallback = false;
+      if (!exportCfg.cors) { exportCfg = basemapConfigs.osm; usedOsmFallback = true; }
+
+      let z = Math.min(exportCfg.maxZoom, 16), pxW, pxH, nw, se;
+      while (z >= 8) {
+        nw = latLonToWorldPx(north, west, z);
+        se = latLonToWorldPx(south, east, z);
+        pxW = Math.ceil(se[0] - nw[0]);
+        pxH = Math.ceil(se[1] - nw[1]);
+        if (Math.max(pxW, pxH) <= 1800) break;
+        z--;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(pxW, 400);
+      canvas.height = Math.max(pxH, 300);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const txMin = Math.floor(nw[0] / 256), txMax = Math.floor(se[0] / 256);
+      const tyMin = Math.floor(nw[1] / 256), tyMax = Math.floor(se[1] / 256);
+      const tileTasks = [];
+      for (let tx = txMin; tx <= txMax; tx++) {
+        for (let ty = tyMin; ty <= tyMax; ty++) {
+          const url = exportCfg.url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
+          tileTasks.push(loadTileImage(url).then(img => {
+            if (img) ctx.drawImage(img, Math.round(tx * 256 - nw[0]), Math.round(ty * 256 - nw[1]), 256, 256);
+          }));
+        }
+      }
+      await Promise.all(tileTasks);
+
+      // Рисуем линию маршрута
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const routePx = deliveryRouteCoords.map(([lat, lon]) => {
+        const [wx, wy] = latLonToWorldPx(lat, lon, z);
+        return [wx - nw[0], wy - nw[1]];
+      });
+
+      ctx.beginPath();
+      routePx.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+      ctx.lineWidth = 8.5;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.stroke();
+
+      ctx.beginPath();
+      routePx.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#2563eb';
+      ctx.stroke();
+
+      // Функция отрисовки маркера с подписью (База / Объект)
+      function drawPinWithLabel(latlng, text, color) {
+        const [wx, wy] = latLonToWorldPx(latlng[0], latlng[1], z);
+        const px = wx - nw[0], py = wy - nw[1];
+
+        ctx.beginPath();
+        ctx.arc(px, py, 9, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.font = '700 14px "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(text).width;
+        const padX = 9, boxH = 26, boxW = tw + padX * 2;
+        const bx = px + 14, by = py - boxH / 2;
+
+        drawRoundedRect(ctx, bx, by, boxW, boxH, 6);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(text, bx + padX, py + 0.5);
+      }
+
+      const startText = document.getElementById('startLabelInput').value.trim() || 'База';
+      const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
+      drawPinWithLabel(BASE_COORDS, startText, '#10b981');
+      drawPinWithLabel(deliveryEndLatLng, endText, '#ef4444');
+
+      // Рисуем плашку "Расстояние: X км"
+      if (deliveryBadgeLatLng && deliveryDistRoundedKm !== null) {
+        const [wx, wy] = latLonToWorldPx(deliveryBadgeLatLng[0], deliveryBadgeLatLng[1], z);
+        const px = wx - nw[0], py = wy - nw[1];
+        const badgeText = `Расстояние: ${deliveryDistRoundedKm} км`;
+
+        ctx.font = '700 15px "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(badgeText).width;
+        const padX = 12, boxH = 32, boxW = tw + padX * 2;
+        const bx = px - boxW / 2, by = py - boxH / 2;
+
+        drawRoundedRect(ctx, bx, by, boxW, boxH, 8);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#2563eb';
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(badgeText, bx + padX, py + 0.5);
+      }
+
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      let copied = false;
+      if (navigator.clipboard && window.ClipboardItem) {
+        try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); copied = true; }
+        catch (e) { copied = false; }
+      }
+      if (copied) {
+        showToast(usedOsmFallback
+          ? `Маршрут (${deliveryDistRoundedKm} км) скопирован на подложке OSM`
+          : `Маршрут (${deliveryDistRoundedKm} км) скопирован в буфер`);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `marshrut_${deliveryDistRoundedKm}km.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Маршрут (${deliveryDistRoundedKm} км) сохранён как PNG`, true);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Ошибка при создании картинки маршрута', true);
     } finally {
       btn.disabled = false;
       btn.textContent = origText;
@@ -1889,6 +2344,8 @@
   }
 
   window.addEventListener('paste', (e) => {
+    // Не перехватываем вставку, если пользователь печатает в поле подписи
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
     const text = (e.clipboardData || window.clipboardData)?.getData('text');
     if (text) applyClipboardText(text);
   });
@@ -1980,10 +2437,7 @@
   });
 
   document.getElementById('btnExportCsv').addEventListener('click', () => {
-    if (!parsedEntities.length) {
-      showToast('Сначала загрузите трассу', true);
-      return;
-    }
+    if (!parsedEntities.length) { showToast('Сначала загрузите трассу', true); return; }
     const crs = document.getElementById('crsSelect').value;
     const scale = parseFloat(document.getElementById('unitsSelect').value);
     const swapXY = document.getElementById('swapXY').checked;
