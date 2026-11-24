@@ -580,6 +580,7 @@
           <label for="basemapSelect">Подложка карты</label>
           <select id="basemapSelect">
             <option value="osm" selected>OpenStreetMap</option>
+            <option value="dgis">2ГИС</option>
             <option value="google_hybrid">Google Гибрид</option>
             <option value="google_sat">Google Спутник</option>
             <option value="esri">ESRI Спутник</option>
@@ -996,6 +997,7 @@
 
   const basemapConfigs = {
     osm: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, cors: true },
+    dgis: { url: 'https://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1', maxZoom: 18, cors: false },
     google_hybrid: { url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', maxZoom: 20, cors: false },
     google_sat: { url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', maxZoom: 20, cors: false },
     esri: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, cors: true }
