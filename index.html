@@ -1008,7 +1008,7 @@
         <div class="diag-card">
           <div class="diag-row">
             <span class="diag-label">Старт:</span>
-            <span class="diag-val" style="font-family:inherit; font-size:11px;">Объект (центр трассы)</span>
+            <span class="diag-val" style="font-family:inherit; font-size:11px;">Объект (дальняя точка трассы)</span>
           </div>
           <div class="diag-row">
             <span class="diag-label">Финиш:</span>
@@ -1682,6 +1682,29 @@
     return [c.lat, c.lng];
   }
 
+  function getFarthestRoutePointLatLng(fromLatLng) {
+    const geoms = renderedGeometries.filter(g => g.type !== 'MLEADER' && layerStyles[g.layer] && layerStyles[g.layer].visible);
+    const fallbackGeoms = renderedGeometries.filter(g => g.type !== 'MLEADER');
+    const source = geoms.length ? geoms : (fallbackGeoms.length ? fallbackGeoms : renderedGeometries);
+    if (!source.length) return null;
+    if (!fromLatLng) return getObjectCenterLatLng();
+
+    let farthest = null;
+    let maxDist = -1;
+    source.forEach(g => {
+      g.latlngs.forEach(ll => {
+        if (!isNaN(ll[0]) && !isNaN(ll[1])) {
+          const d = map.distance(fromLatLng, ll);
+          if (d > maxDist) {
+            maxDist = d;
+            farthest = [ll[0], ll[1]];
+          }
+        }
+      });
+    });
+    return farthest || getObjectCenterLatLng();
+  }
+
   function fitToRoute(animate = true) {
     if (activeTab === 'delivery') {
       fitToDeliveryRoute(animate);
@@ -1874,10 +1897,9 @@
     }
 
     if (fitMap && renderedGeometries.length) {
-      const center = getObjectCenterLatLng();
-      deliveryEndLatLng = center;
+      deliveryEndLatLng = getFarthestRoutePointLatLng(deliveryStartLatLng);
       deliveryBadgeLatLng = null;
-      resStartLatLng = center;
+      resStartLatLng = null;
       resBadgeLatLng = null;
       if (activeTab === 'plan') fitToRoute(false);
       else if (activeTab === 'delivery') buildDeliveryRoute(true);
@@ -1976,7 +1998,7 @@
   }
 
   async function buildDeliveryRoute(fitMap = true) {
-    if (!deliveryEndLatLng) deliveryEndLatLng = getObjectCenterLatLng() || [55.835171, 49.246790];
+    if (!deliveryEndLatLng) deliveryEndLatLng = getFarthestRoutePointLatLng(deliveryStartLatLng) || [55.835171, 49.246790];
 
     document.getElementById('delDistRound').textContent = 'расчёт...';
     document.getElementById('delDistExact').textContent = '—';
@@ -2006,6 +2028,9 @@
       const p = e.target.getLatLng();
       deliveryStartLatLng = [p.lat, p.lng];
       try { localStorage.setItem('aplan_base_coords', JSON.stringify(deliveryStartLatLng)); } catch (err) {}
+      if (renderedGeometries.length) {
+        deliveryEndLatLng = getFarthestRoutePointLatLng(deliveryStartLatLng);
+      }
       buildDeliveryRoute(false);
     });
 
@@ -2034,10 +2059,11 @@
   });
 
   document.getElementById('btnResetDeliveryEnd').addEventListener('click', () => {
-    const center = getObjectCenterLatLng();
-    if (!center) { showToast('Сначала загрузите объект на вкладке «Ситплан»', true); return; }
-    deliveryEndLatLng = center;
+    const farthest = getFarthestRoutePointLatLng(deliveryStartLatLng);
+    if (!farthest) { showToast('Сначала загрузите объект на вкладке «Ситплан»', true); return; }
+    deliveryEndLatLng = farthest;
     buildDeliveryRoute(true);
+    showToast('Точка «Объект» установлена на самую удалённую вершину трассы от Базы');
   });
 
   // ================= ВКЛАДКА 3: ВЫВОЗ В РЭС (Объект -> ВРЭС / СРЭС) =================
@@ -2148,7 +2174,6 @@
   }
 
   async function buildResRoute(fitMap = true) {
-    if (!resStartLatLng) resStartLatLng = getObjectCenterLatLng() || [55.835171, 49.246790];
     const routeKey = activeResKey;
     const cfg = RES_CONFIG[routeKey];
 
@@ -2160,6 +2185,9 @@
     await ensureResDefault(routeKey);
     if (routeKey !== activeResKey) return; // пользователь успел переключить подвкладку
     const endLatLng = resEndCoordsMap[routeKey];
+    if (!resStartLatLng) {
+      resStartLatLng = getFarthestRoutePointLatLng(endLatLng) || [55.835171, 49.246790];
+    }
 
     const res = await fetchOsrmRoute(resStartLatLng, endLatLng);
     resRouteCoords = res.coords;
@@ -2192,6 +2220,9 @@
       const p = e.target.getLatLng();
       resEndCoordsMap[activeResKey] = [p.lat, p.lng];
       try { localStorage.setItem(cfg.storageKey, JSON.stringify(resEndCoordsMap[activeResKey])); } catch (err) {}
+      if (renderedGeometries.length) {
+        resStartLatLng = getFarthestRoutePointLatLng(resEndCoordsMap[activeResKey]);
+      }
       buildResRoute(false);
     });
 
@@ -2210,6 +2241,7 @@
       const key = btn.dataset.res;
       if (key === activeResKey) return;
       activeResKey = key;
+      if (renderedGeometries.length) resStartLatLng = null;
       document.querySelectorAll('.subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.res === activeResKey));
       document.getElementById('resEndLabelInput').value = resCustomEndLabel[activeResKey] || RES_CONFIG[activeResKey].name;
       buildResRoute(true);
@@ -2217,10 +2249,11 @@
   });
 
   document.getElementById('btnResetResStart').addEventListener('click', () => {
-    const center = getObjectCenterLatLng();
-    if (!center) { showToast('Сначала загрузите объект на вкладке «Ситплан»', true); return; }
-    resStartLatLng = center;
+    const farthest = getFarthestRoutePointLatLng(resEndCoordsMap[activeResKey]);
+    if (!farthest) { showToast('Сначала загрузите объект на вкладке «Ситплан»', true); return; }
+    resStartLatLng = farthest;
     buildResRoute(true);
+    showToast(`Точка «Объект» установлена на самую удалённую вершину от ${RES_CONFIG[activeResKey].name}`);
   });
 
   document.getElementById('btnResetResEnd').addEventListener('click', async () => {
