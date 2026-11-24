@@ -260,7 +260,8 @@
     }
     .route-pin-label.end { border-color: #ef4444; cursor: grab; }
     .route-pin-label.end:active { cursor: grabbing; }
-    .route-pin-label.start { border-color: #10b981; }
+    .route-pin-label.start { border-color: #10b981; cursor: grab; }
+    .route-pin-label.start:active { cursor: grabbing; }
 
     .dist-badge-icon { background: transparent !important; border: none !important; }
     .dist-badge {
@@ -922,7 +923,7 @@
             <span class="diag-val" id="delDuration">—</span>
           </div>
         </div>
-        <p class="diag-hint">Маркер <b>«Объект»</b> и плашку <b>«Расстояние»</b> можно перетаскивать мышкой прямо на карте.</p>
+        <p class="diag-hint">Маркеры <b>«База»</b>, <b>«Объект»</b> и плашку <b>«Расстояние»</b> можно перетаскивать мышкой прямо на карте. Положение Базы сохраняется автоматически.</p>
       </div>
 
       <div class="section-export">
@@ -931,7 +932,7 @@
       </div>
 
       <div class="section">
-        <div class="section-title">3. Подписи точек</div>
+        <div class="section-title">3. Подписи и сброс точек</div>
         <div class="grid-2">
           <div class="field" style="margin-bottom:0">
             <label for="startLabelInput">Точка старта</label>
@@ -942,7 +943,10 @@
             <input type="text" id="endLabelInput" value="Объект" />
           </div>
         </div>
-        <button class="btn btn-primary btn-full" id="btnResetDeliveryEnd" style="margin-top:10px;">🔄 Сбросить финиш в центр объекта</button>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-ok" id="btnResetDeliveryStart">🔄 Сброс Базы</button>
+          <button class="btn btn-primary" id="btnResetDeliveryEnd">🔄 Сброс Объекта</button>
+        </div>
       </div>
 
       <div class="section">
@@ -1751,7 +1755,6 @@
       });
     }
 
-    // При загрузке новой трассы обновляем конечную точку доставки
     if (fitMap && renderedGeometries.length) {
       deliveryEndLatLng = getObjectCenterLatLng();
       deliveryBadgeLatLng = null;
@@ -1766,7 +1769,15 @@
   // =========================================================================
   // 4.5. ВКЛАДКА 2: МАРШРУТ ДОСТАВКИ (Салиха Батыева, 19 -> Объект)
   // =========================================================================
-  const BASE_COORDS = [55.741700, 49.217900]; // г. Казань, ул. Салиха Батыева, д. 19
+  const DEFAULT_BASE_COORDS = [55.755560, 49.243021]; // г. Казань, ул. Салиха Батыева, д. 19
+  let deliveryStartLatLng = (() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('aplan_base_coords'));
+      if (Array.isArray(saved) && saved.length === 2 && !isNaN(saved[0]) && !isNaN(saved[1])) return saved;
+    } catch (e) {}
+    return [...DEFAULT_BASE_COORDS];
+  })();
+
   let deliveryLayerGroup = L.layerGroup();
   let deliveryEndLatLng = null;
   let deliveryRouteCoords = [];
@@ -1810,7 +1821,7 @@
     if (deliveryRouteCoords.length) {
       deliveryRouteCoords.forEach(ll => bounds.extend(ll));
     } else {
-      bounds.extend(BASE_COORDS);
+      bounds.extend(deliveryStartLatLng);
       if (deliveryEndLatLng) bounds.extend(deliveryEndLatLng);
     }
     if (bounds.isValid()) {
@@ -1831,10 +1842,10 @@
     document.getElementById('delDistExact').textContent = '—';
     document.getElementById('delDuration').textContent = '—';
 
-    const url = `https://router.project-osrm.org/route/v1/driving/${BASE_COORDS[1]},${BASE_COORDS[0]};${deliveryEndLatLng[1]},${deliveryEndLatLng[0]}?overview=full&geometries=geojson`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${deliveryStartLatLng[1]},${deliveryStartLatLng[0]};${deliveryEndLatLng[1]},${deliveryEndLatLng[0]}?overview=full&geometries=geojson`;
 
-    let coords = [BASE_COORDS, deliveryEndLatLng];
-    let exactKm = map.distance(BASE_COORDS, deliveryEndLatLng) / 1000.0;
+    let coords = [deliveryStartLatLng, deliveryEndLatLng];
+    let exactKm = map.distance(deliveryStartLatLng, deliveryEndLatLng) / 1000.0;
     let durationMin = null;
     let isFallback = false;
 
@@ -1866,13 +1877,11 @@
       document.getElementById('hudLen').textContent = `${deliveryDistRoundedKm} км`;
     }
 
-    // Середина маршрута для плашки расстояния
     const midIdx = Math.floor(coords.length / 2);
-    deliveryBadgeLatLng = coords[midIdx] || [(BASE_COORDS[0] + deliveryEndLatLng[0]) / 2, (BASE_COORDS[1] + deliveryEndLatLng[1]) / 2];
+    deliveryBadgeLatLng = coords[midIdx] || [(deliveryStartLatLng[0] + deliveryEndLatLng[0]) / 2, (deliveryStartLatLng[1] + deliveryEndLatLng[1]) / 2];
 
     deliveryLayerGroup.clearLayers();
 
-    // Подложка линии + основная линия маршрута
     L.polyline(coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(deliveryLayerGroup);
     L.polyline(coords, {
       color: '#2563eb',
@@ -1884,10 +1893,18 @@
     const startText = document.getElementById('startLabelInput').value.trim() || 'База';
     const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
 
-    deliveryStartMarker = L.marker(BASE_COORDS, {
+    deliveryStartMarker = L.marker(deliveryStartLatLng, {
       icon: makePinIcon(startText, 'start'),
+      draggable: true,
       zIndexOffset: 500
     }).addTo(deliveryLayerGroup);
+
+    deliveryStartMarker.on('dragend', (e) => {
+      const p = e.target.getLatLng();
+      deliveryStartLatLng = [p.lat, p.lng];
+      try { localStorage.setItem('aplan_base_coords', JSON.stringify(deliveryStartLatLng)); } catch (err) {}
+      buildDeliveryRoute(false);
+    });
 
     deliveryEndMarker = L.marker(deliveryEndLatLng, {
       icon: makePinIcon(endText, 'end'),
@@ -1917,6 +1934,13 @@
     }
     if (fitMap) fitToDeliveryRoute(true);
   }
+
+  document.getElementById('btnResetDeliveryStart').addEventListener('click', () => {
+    deliveryStartLatLng = [...DEFAULT_BASE_COORDS];
+    try { localStorage.removeItem('aplan_base_coords'); } catch (e) {}
+    buildDeliveryRoute(true);
+    showToast('Точка «База» сброшена на ул. Салиха Батыева, д. 19');
+  });
 
   document.getElementById('btnResetDeliveryEnd').addEventListener('click', () => {
     const center = getObjectCenterLatLng();
@@ -2163,7 +2187,7 @@
 
     try {
       let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-      const allPts = [...deliveryRouteCoords, BASE_COORDS, deliveryEndLatLng];
+      const allPts = [...deliveryRouteCoords, deliveryStartLatLng, deliveryEndLatLng];
       if (deliveryBadgeLatLng) allPts.push(deliveryBadgeLatLng);
       allPts.forEach(([lat, lon]) => {
         if (lat < minLat) minLat = lat;
@@ -2231,7 +2255,6 @@
       ctx.strokeStyle = '#2563eb';
       ctx.stroke();
 
-      // Функция отрисовки маркера с подписью (База / Объект)
       function drawPinWithLabel(latlng, text, color) {
         const [wx, wy] = latLonToWorldPx(latlng[0], latlng[1], z);
         const px = wx - nw[0], py = wy - nw[1];
@@ -2263,10 +2286,9 @@
 
       const startText = document.getElementById('startLabelInput').value.trim() || 'База';
       const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
-      drawPinWithLabel(BASE_COORDS, startText, '#10b981');
+      drawPinWithLabel(deliveryStartLatLng, startText, '#10b981');
       drawPinWithLabel(deliveryEndLatLng, endText, '#ef4444');
 
-      // Рисуем плашку "Расстояние: X км"
       if (deliveryBadgeLatLng && deliveryDistRoundedKm !== null) {
         const [wx, wy] = latLonToWorldPx(deliveryBadgeLatLng[0], deliveryBadgeLatLng[1], z);
         const px = wx - nw[0], py = wy - nw[1];
@@ -2344,7 +2366,6 @@
   }
 
   window.addEventListener('paste', (e) => {
-    // Не перехватываем вставку, если пользователь печатает в поле подписи
     if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
     const text = (e.clipboardData || window.clipboardData)?.getData('text');
     if (text) applyClipboardText(text);
