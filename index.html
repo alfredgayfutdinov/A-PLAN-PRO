@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>А-План Про — МСК-16 (Татарстан) → WGS-84</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2338bdf8'/%3E%3Cstop offset='100%25' stop-color='%232dd4bf'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%230b1222'/%3E%3Crect x='2' y='2' width='60' height='60' rx='14' fill='none' stroke='%2338bdf8' stroke-opacity='0.45' stroke-width='2'/%3E%3Cpath d='M18 12v40M32 12v40M46 12v40M12 18h40M12 32h40M12 46h40' stroke='%2338bdf8' stroke-opacity='0.14' stroke-width='1.2'/%3E%3Cpath d='M14 46 L27 25 L41 37 L51 17' fill='none' stroke='url(%23g)' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='14' cy='46' r='4.2' fill='%230b1222' stroke='%2338bdf8' stroke-width='2.8'/%3E%3Ccircle cx='27' cy='25' r='4.2' fill='%230b1222' stroke='%2338bdf8' stroke-width='2.8'/%3E%3Ccircle cx='41' cy='37' r='4.2' fill='%230b1222' stroke='%232dd4bf' stroke-width='2.8'/%3E%3Ccircle cx='51' cy='17' r='5' fill='%232dd4bf'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -89,7 +89,7 @@
       position: absolute;
       top: 14px;
       left: 382px;
-      z-index: 1001;
+      z-index: 1002;
       width: 38px;
       height: 38px;
       border-radius: 10px;
@@ -111,11 +111,17 @@
     }
     .toggle-btn.collapsed { left: 14px; }
 
-    .fit-route-btn {
+    /* Верхняя правая группа кнопок: GPS + К трассе */
+    .map-actions {
       position: absolute;
       top: 10px;
       right: 54px;
       z-index: 1001;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .map-action-btn {
       height: 36px;
       padding: 0 13px;
       border-radius: 10px;
@@ -134,13 +140,66 @@
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 12px rgba(56, 189, 248, 0.14);
       transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s;
     }
-    .fit-route-btn:hover {
+    .map-action-btn:hover {
       background: rgba(56, 189, 248, 0.2);
       border-color: var(--accent);
       color: #fff;
       box-shadow: 0 0 18px var(--accent-glow);
     }
-    .fit-route-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .map-action-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .map-action-btn.gps-searching {
+      border-color: var(--warn);
+      color: var(--warn);
+      animation: gpsBtnPulse 1.2s infinite;
+    }
+    .map-action-btn.gps-active {
+      background: rgba(45, 212, 191, 0.22);
+      border-color: var(--ok);
+      color: var(--ok);
+      box-shadow: 0 0 18px var(--ok-glow);
+    }
+    .map-action-btn.gps-active:hover {
+      background: var(--ok);
+      color: #070b14;
+    }
+    @keyframes gpsBtnPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(250, 204, 21, 0.25); }
+      50% { box-shadow: 0 0 18px rgba(250, 204, 21, 0.6); }
+    }
+
+    /* Пульсирующий маркер GPS на карте */
+    .gps-marker-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+    .gps-dot-wrap {
+      position: relative;
+      width: 24px;
+      height: 24px;
+    }
+    .gps-dot-pulse {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.45);
+      animation: gpsRing 2s ease-out infinite;
+    }
+    .gps-dot-core {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #0ea5e9;
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.85);
+    }
+    @keyframes gpsRing {
+      0% { transform: scale(0.6); opacity: 0.9; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
 
     .header {
       padding: 15px 18px 14px;
@@ -446,6 +505,8 @@
       font-weight: 600;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55), 0 0 20px rgba(45, 212, 191, 0.28);
       transition: opacity 0.25s, transform 0.25s;
+      max-width: 90vw;
+      text-align: center;
     }
     .toast.show {
       opacity: 1;
@@ -482,6 +543,41 @@
     .leaflet-popup-content { font-size: 12px; line-height: 1.55; margin: 11px 13px; }
     .popup-title { font-weight: 700; color: var(--accent); margin-bottom: 6px; font-size: 13px; }
     .popup-mono { font-family: 'Consolas', monospace; color: var(--num); }
+
+    /* Адаптив для телефона на выезде */
+    @media (max-width: 640px) {
+      .sidebar {
+        width: calc(100vw - 28px);
+        max-width: 360px;
+      }
+      .toggle-btn {
+        left: calc(min(100vw - 28px, 360px) - 34px);
+        top: 24px;
+      }
+      .toggle-btn.collapsed {
+        left: 14px;
+        top: 10px;
+      }
+      .map-actions {
+        right: 52px;
+        gap: 6px;
+      }
+      .map-action-btn {
+        padding: 0 10px;
+        font-size: 11.5px;
+      }
+      .hud {
+        left: 14px;
+        right: 14px;
+        bottom: 12px;
+      }
+      .hud-box {
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 12px;
+        font-size: 11px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -491,17 +587,26 @@
 
 <button class="toggle-btn" id="toggleSidebar" title="Свернуть / развернуть панель">◀</button>
 
-<button class="fit-route-btn" id="btnFitRoute" title="Отцентровать и приблизить мою трассу">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="7" />
-    <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
-    <line x1="12" y1="2" x2="12" y2="5" />
-    <line x1="12" y1="19" x2="12" y2="22" />
-    <line x1="2" y1="12" x2="5" y2="12" />
-    <line x1="19" y1="12" x2="22" y2="12" />
-  </svg>
-  <span>К трассе</span>
-</button>
+<div class="map-actions">
+  <button class="map-action-btn" id="btnGps" title="Показать моё местоположение (GPS)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polygon points="3 11 22 2 13 21 11 13 3 11" />
+    </svg>
+    <span>GPS</span>
+  </button>
+
+  <button class="map-action-btn" id="btnFitRoute" title="Отцентровать и приблизить мою трассу">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="7" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+      <line x1="12" y1="2" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="22" y2="12" />
+    </svg>
+    <span>К трассе</span>
+  </button>
+</div>
 
 <aside class="sidebar" id="sidebar">
   <div class="header">
@@ -629,18 +734,10 @@
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  // Перевод цвета из DWG (#RRGGBB или ACI:1..255) в HEX
   function aciToHex(aci) {
     const base = {
-      1: '#ef4444', // Red
-      2: '#eab308', // Yellow
-      3: '#22c55e', // Green
-      4: '#06b6d4', // Cyan
-      5: '#2563eb', // Blue
-      6: '#d946ef', // Magenta
-      7: '#1e293b', // White/Black -> тёмный для читаемости на OSM
-      8: '#64748b', // Dark Gray
-      9: '#94a3b8'  // Light Gray
+      1: '#ef4444', 2: '#eab308', 3: '#22c55e', 4: '#06b6d4',
+      5: '#2563eb', 6: '#d946ef', 7: '#1e293b', 8: '#64748b', 9: '#94a3b8'
     };
     if (base[aci]) return base[aci];
     if (aci >= 250 && aci <= 255) {
@@ -654,7 +751,6 @@
       const sat = (sub % 2 === 0) ? 90 : 50;
       const lightMap = [50, 50, 72, 72, 42, 42, 32, 32, 22, 22];
       const l = lightMap[sub];
-      // HSL -> HEX
       const s = sat / 100, lv = l / 100;
       const c = (1 - Math.abs(2 * lv - 1)) * s;
       const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
@@ -675,7 +771,6 @@
   function resolveDwgColor(raw) {
     if (!raw) return null;
     if (raw.startsWith('#') && raw.length === 7) {
-      // Если чисто белый на светлой карте — чуть затемняем для видимости
       return raw.toUpperCase() === '#FFFFFF' ? '#1e293b' : raw;
     }
     if (raw.startsWith('ACI:')) {
@@ -986,7 +1081,7 @@
   }
 
   // =========================================================================
-  // 3. КАРТА LEAFLET
+  // 3. КАРТА LEAFLET И ПОДЛОЖКИ (OSM ПО УМОЛЧАНИЮ + 2ГИС)
   // =========================================================================
   const map = L.map('map', {
     zoomControl: false,
@@ -1019,6 +1114,164 @@
 
   map.on('mousemove', (e) => {
     document.getElementById('hudCoords').textContent = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+  });
+
+  // =========================================================================
+  // 3.5. МОДУЛЬ GPS (ЖИВОЕ ПОЗИЦИОНИРОВАНИЕ + РАССТОЯНИЕ ДО ТРАССЫ)
+  // =========================================================================
+  const btnGps = document.getElementById('btnGps');
+  let gpsWatchId = null;
+  let gpsFirstFix = false;
+  let gpsLayerGroup = L.layerGroup().addTo(map);
+  let gpsMarker = null;
+  let gpsAccuracyCircle = null;
+
+  // Кратчайшее расстояние от точки (lat, lon) до отрезка [a, b] в метрах
+  function pointToSegmentDistM(lat, lon, a, b) {
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    const kx = 111320.0 * cosLat;
+    const ky = 111320.0;
+    const px = lon * kx, py = lat * ky;
+    const ax = a[1] * kx, ay = a[0] * ky;
+    const bx = b[1] * kx, by = b[0] * ky;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    let t = 0;
+    if (len2 > 0) {
+      t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+    }
+    const projX = ax + t * dx;
+    const projY = ay + t * dy;
+    return Math.hypot(px - projX, py - projY);
+  }
+
+  function distanceToNearestRouteM(lat, lon) {
+    let minD = Infinity;
+    renderedGeometries.forEach(g => {
+      if (g.type === 'MLEADER') return;
+      const st = layerStyles[g.layer];
+      if (st && !st.visible) return;
+      const pts = g.latlngs;
+      if (pts.length === 1) {
+        const d = map.distance([lat, lon], pts[0]);
+        if (d < minD) minD = d;
+      } else {
+        for (let i = 1; i < pts.length; i++) {
+          const d = pointToSegmentDistM(lat, lon, pts[i - 1], pts[i]);
+          if (d < minD) minD = d;
+        }
+        if (g.closed && pts.length >= 3) {
+          const d = pointToSegmentDistM(lat, lon, pts[pts.length - 1], pts[0]);
+          if (d < minD) minD = d;
+        }
+      }
+    });
+    return isFinite(minD) ? minD : null;
+  }
+
+  function stopGps(silent = false) {
+    if (gpsWatchId !== null) {
+      navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+    }
+    gpsLayerGroup.clearLayers();
+    gpsMarker = null;
+    gpsAccuracyCircle = null;
+    btnGps.classList.remove('gps-active', 'gps-searching');
+    if (!silent) showToast('GPS-слежение отключено');
+  }
+
+  function updateGpsPosition(pos) {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+    const acc = Math.round(pos.coords.accuracy || 0);
+    const latlng = [lat, lon];
+
+    btnGps.classList.remove('gps-searching');
+    btnGps.classList.add('gps-active');
+
+    if (!gpsAccuracyCircle) {
+      gpsAccuracyCircle = L.circle(latlng, {
+        radius: acc,
+        color: '#38bdf8',
+        weight: 1.5,
+        fillColor: '#38bdf8',
+        fillOpacity: 0.14,
+        interactive: false
+      }).addTo(gpsLayerGroup);
+    } else {
+      gpsAccuracyCircle.setLatLng(latlng).setRadius(acc);
+    }
+
+    const distM = distanceToNearestRouteM(lat, lon);
+    const distRow = distM !== null
+      ? `<div>До трассы: <span class="popup-mono" style="color:var(--ok)">${distM < 1000 ? distM.toFixed(1) + ' м' : (distM / 1000).toFixed(2) + ' км'}</span></div>`
+      : '';
+
+    const popupHtml = `
+      <div class="popup-title">Моё местоположение (GPS)</div>
+      <div>WGS-84: <span class="popup-mono">${lat.toFixed(6)}, ${lon.toFixed(6)}</span></div>
+      <div>Точность: <span class="popup-mono">±${acc} м</span></div>
+      ${distRow}
+    `;
+
+    if (!gpsMarker) {
+      const gpsIcon = L.divIcon({
+        className: 'gps-marker-icon',
+        html: '<div class="gps-dot-wrap"><div class="gps-dot-pulse"></div><div class="gps-dot-core"></div></div>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+      gpsMarker = L.marker(latlng, { icon: gpsIcon, zIndexOffset: 1000 })
+        .bindPopup(popupHtml)
+        .addTo(gpsLayerGroup);
+    } else {
+      gpsMarker.setLatLng(latlng).setPopupContent(popupHtml);
+    }
+
+    document.getElementById('hudCoords').textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+    if (gpsFirstFix) {
+      gpsFirstFix = false;
+      map.flyTo(latlng, Math.max(map.getZoom(), 18), { duration: 0.75 });
+      showToast(`GPS активен (точность ±${acc} м)`);
+    }
+  }
+
+  function handleGpsError(err) {
+    stopGps(true);
+    if (err.code === 1) {
+      showToast('Доступ к геолокации запрещён в браузере', true);
+    } else if (err.code === 2) {
+      showToast('Сигнал GPS недоступен', true);
+    } else if (err.code === 3) {
+      showToast('Не удалось получить координаты (таймаут GPS)', true);
+    } else {
+      showToast('Ошибка определения GPS-координат', true);
+    }
+  }
+
+  btnGps.addEventListener('click', () => {
+    if (gpsWatchId !== null) {
+      stopGps(false);
+      return;
+    }
+    if (!navigator.geolocation) {
+      showToast('Ваш браузер не поддерживает GPS-геолокацию', true);
+      return;
+    }
+    if (!window.isSecureContext) {
+      showToast('GPS работает только по HTTPS (откройте через GitHub Pages)', true);
+      return;
+    }
+    gpsFirstFix = true;
+    btnGps.classList.add('gps-searching');
+    showToast('Поиск спутников GPS...');
+    gpsWatchId = navigator.geolocation.watchPosition(
+      updateGpsPosition,
+      handleGpsError,
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+    );
   });
 
   // =========================================================================
@@ -1055,8 +1308,9 @@
     });
 
     if (bounds.isValid()) {
-      const leftPad = sidebarEl.classList.contains('collapsed') ? 40 : 390;
-      const opts = { paddingTopLeft: [leftPad, 55], paddingBottomRight: [40, 55], maxZoom: 19 };
+      const isMobile = window.innerWidth <= 640;
+      const leftPad = (sidebarEl.classList.contains('collapsed') || isMobile) ? 35 : 390;
+      const opts = { paddingTopLeft: [leftPad, 55], paddingBottomRight: [35, 55], maxZoom: 19 };
       if (animate) map.flyToBounds(bounds, { ...opts, duration: 0.65 });
       else map.fitBounds(bounds, opts);
     }
@@ -1112,7 +1366,6 @@
       totalLen += entLen;
       layerLengths[lname] = (layerLengths[lname] || 0) + entLen;
 
-      // Если пользователь вручную поменял цвет слоя — используем его; иначе родной цвет из DWG
       const st = layerStyles[lname];
       const entColor = st.override ? st.color : (ent.color || st.color);
       const polyColor = st.override ? st.color : (ent.color || '#eab308');
@@ -1423,7 +1676,7 @@
 
       if (copied) {
         showToast(usedOsmFallback
-          ? 'Скопировано (+50 м) на подложке OSM (Google блокирует экспорт)'
+          ? 'Скопировано (+50 м) на подложке OSM (Google/2ГИС блокируют экспорт)'
           : `Картинка скопирована в буфер (${canvas.width}×${canvas.height} px, поля +50 м)`);
       } else {
         const url = URL.createObjectURL(blob);
