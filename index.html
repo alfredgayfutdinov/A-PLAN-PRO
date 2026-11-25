@@ -794,6 +794,43 @@
         padding: 9px 14px;
       }
     }
+  
+    .addr-row { display: flex; gap: 6px; margin-bottom: 6px; }
+    .addr-row input[type="text"] { flex: 1; }
+    .addr-results {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+      max-height: 135px;
+      overflow-y: auto;
+    }
+    .addr-results.open { display: flex; }
+    .addr-item {
+      text-align: left;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 7px;
+      padding: 6px 8px;
+      color: var(--text);
+      font-size: 11.5px;
+      line-height: 1.35;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .addr-item:hover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.16);
+      color: #fff;
+    }
+    .btn-pick-map.picking {
+      background: rgba(250, 204, 21, 0.22);
+      border-color: var(--warn);
+      color: var(--warn);
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.35);
+    }
+    .picking-map-cursor, .picking-map-cursor * { cursor: crosshair !important; }
+
   </style>
 </head>
 <body>
@@ -939,6 +976,15 @@
     <div id="tabDelivery" class="tab-content">
       <div class="section">
         <div class="section-title">1. Параметры маршрута (База → Объект)</div>
+        <div class="field">
+          <label for="delObjAddressInput">Адрес объекта (если без DXF)</label>
+          <div class="addr-row">
+            <input type="text" id="delObjAddressInput" placeholder="Например: ул. Чистопольская, 60 или адрес в Казани" />
+            <button class="btn btn-primary" id="btnDelFindAddr" type="button" style="padding:7px 11px;">Найти</button>
+          </div>
+          <div class="addr-results" id="delAddrResults"></div>
+          <button class="btn btn-violet btn-full btn-pick-map" id="btnDelPickMap" type="button" style="margin-top:4px;">📌 Указать объект на карте</button>
+        </div>
         <div class="diag-card">
           <div class="diag-row">
             <span class="diag-label">Старт:</span>
@@ -957,7 +1003,7 @@
             <span class="diag-val" id="delDuration">—</span>
           </div>
         </div>
-        <p class="diag-hint">Маркеры <b>«База»</b>, <b>«Объект»</b> и плашку <b>«Расстояние»</b> можно перетаскивать мышкой прямо на карте. Положение Базы сохраняется автоматически.</p>
+        <p class="diag-hint">Можно ввести адрес, нажать <b>«Указать на карте»</b> или перетаскивать маркеры <b>«База»</b>, <b>«Объект»</b> и плашку <b>«Расстояние»</b> мышкой.</p>
       </div>
 
       <div class="section-export">
@@ -1004,6 +1050,15 @@
         <div class="subtabs-bar">
           <button class="subtab-btn active" data-res="vres">ВРЭС</button>
           <button class="subtab-btn" data-res="sres">СРЭС</button>
+        </div>
+        <div class="field">
+          <label for="resObjAddressInput">Адрес объекта (если без DXF)</label>
+          <div class="addr-row">
+            <input type="text" id="resObjAddressInput" placeholder="Например: ул. Чистопольская, 60 или адрес в Казани" />
+            <button class="btn btn-primary" id="btnResFindAddr" type="button" style="padding:7px 11px;">Найти</button>
+          </div>
+          <div class="addr-results" id="resAddrResults"></div>
+          <button class="btn btn-violet btn-full btn-pick-map" id="btnResPickMap" type="button" style="margin-top:4px;">📌 Указать объект на карте</button>
         </div>
         <div class="diag-card">
           <div class="diag-row">
@@ -1960,11 +2015,138 @@
     };
   }
 
+  // --- Поиск адресов в Казани + ручной выбор объекта на карте ---
+  let pickTargetMode = null; // null | 'delivery' | 'res'
+
+  function setPickObjectMode(mode) {
+    pickTargetMode = (pickTargetMode === mode) ? null : mode;
+    document.getElementById('btnDelPickMap').classList.toggle('picking', pickTargetMode === 'delivery');
+    document.getElementById('btnResPickMap').classList.toggle('picking', pickTargetMode === 'res');
+    document.getElementById('map').classList.toggle('picking-map-cursor', pickTargetMode !== null);
+    if (pickTargetMode) {
+      if (isMobileView()) setSidebarCollapsed(true);
+      showToast('Кликните на карте, чтобы поставить маркер «Объект»');
+    }
+  }
+
+  document.getElementById('btnDelPickMap').addEventListener('click', () => setPickObjectMode('delivery'));
+  document.getElementById('btnResPickMap').addEventListener('click', () => setPickObjectMode('res'));
+
+  async function searchKazanAddresses(rawQuery) {
+    let q = (rawQuery || '').trim();
+    if (!q) return [];
+    if (!/казан|татарстан|рт/i.test(q)) q = 'Казань, ' + q;
+    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=ru' +
+      '&viewbox=48.80,56.00,49.50,55.60&bounded=1&accept-language=ru&q=' + encodeURIComponent(q);
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error('Nominatim HTTP ' + resp.status);
+    const arr = await resp.json();
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map(item => ({
+        lat: parseFloat(item.lat),
+        lon: parseFloat(item.lon),
+        title: (item.display_name || q).split(',').slice(0, 3).join(',').trim()
+      }))
+      .filter(it => !isNaN(it.lat) && !isNaN(it.lon) && isInKazan(it.lat, it.lon));
+  }
+
+  function applyManualObjectCoords(targetTab, latlng, labelText) {
+    try { localStorage.setItem('aplan_manual_obj_coords', JSON.stringify(latlng)); } catch (e) {}
+    if (labelText) {
+      document.getElementById('delObjAddressInput').value = labelText;
+      document.getElementById('resObjAddressInput').value = labelText;
+    }
+    if (targetTab === 'delivery') {
+      deliveryEndLatLng = [latlng[0], latlng[1]];
+      resStartLatLng = [latlng[0], latlng[1]];
+      buildDeliveryRoute(true);
+    } else {
+      resStartLatLng = [latlng[0], latlng[1]];
+      deliveryEndLatLng = [latlng[0], latlng[1]];
+      buildResRoute(true);
+    }
+  }
+
+  function bindAddressSearchUI({ inputId, btnId, resultsId, targetTab }) {
+    const inputEl = document.getElementById(inputId);
+    const btnEl = document.getElementById(btnId);
+    const resEl = document.getElementById(resultsId);
+
+    async function runSearch() {
+      const q = inputEl.value.trim();
+      if (!q) { showToast('Введите адрес объекта', true); return; }
+      btnEl.disabled = true;
+      resEl.innerHTML = '';
+      resEl.classList.remove('open');
+      try {
+        const items = await searchKazanAddresses(q);
+        if (!items.length) {
+          showToast('Адрес в Казани не найден — попробуйте уточнить или указать на карте', true);
+          return;
+        }
+        if (items.length === 1) {
+          applyManualObjectCoords(targetTab, [items[0].lat, items[0].lon], items[0].title);
+          showToast(`Объект установлен: ${items[0].title}`);
+          return;
+        }
+        items.forEach(it => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'addr-item';
+          b.textContent = it.title;
+          b.addEventListener('click', () => {
+            resEl.classList.remove('open');
+            resEl.innerHTML = '';
+            applyManualObjectCoords(targetTab, [it.lat, it.lon], it.title);
+            showToast(`Объект установлен: ${it.title}`);
+          });
+          resEl.appendChild(b);
+        });
+        resEl.classList.add('open');
+      } catch (err) {
+        console.error(err);
+        showToast('Ошибка поиска адреса — укажите точку на карте', true);
+      } finally {
+        btnEl.disabled = false;
+      }
+    }
+
+    btnEl.addEventListener('click', runSearch);
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); runSearch(); }
+    });
+  }
+
+  bindAddressSearchUI({
+    inputId: 'delObjAddressInput',
+    btnId: 'btnDelFindAddr',
+    resultsId: 'delAddrResults',
+    targetTab: 'delivery'
+  });
+  bindAddressSearchUI({
+    inputId: 'resObjAddressInput',
+    btnId: 'btnResFindAddr',
+    resultsId: 'resAddrResults',
+    targetTab: 'res'
+  });
+
+  map.on('click', (e) => {
+    if (!pickTargetMode) return;
+    const mode = pickTargetMode;
+    setPickObjectMode(null);
+    const p = [e.latlng.lat, e.latlng.lng];
+    applyManualObjectCoords(mode, p, `${p[0].toFixed(6)}, ${p[1].toFixed(6)}`);
+    showToast('Маркер «Объект» установлен на карте');
+  });
+
   // ================= ВКЛАДКА 2: МАРШРУТ ДОСТАВКИ (База -> Объект) =================
   const DEFAULT_BASE_COORDS = [55.755560, 49.243021]; // г. Казань, ул. Салиха Батыева, д. 19
+  const savedManualObj = loadSavedCoords('aplan_manual_obj_coords', [NaN, NaN]);
+  const INITIAL_MANUAL_OBJ = (!isNaN(savedManualObj[0]) && !isNaN(savedManualObj[1])) ? savedManualObj : null;
   let deliveryStartLatLng = loadSavedCoords('aplan_base_coords', DEFAULT_BASE_COORDS);
   let deliveryLayerGroup = L.layerGroup();
-  let deliveryEndLatLng = null;
+  let deliveryEndLatLng = INITIAL_MANUAL_OBJ ? [...INITIAL_MANUAL_OBJ] : null;
   let deliveryRouteCoords = [];
   let deliveryDistRoundedKm = null;
   let deliveryBadgeLatLng = null;
@@ -2038,6 +2220,8 @@
     deliveryEndMarker.on('dragend', (e) => {
       const p = e.target.getLatLng();
       deliveryEndLatLng = [p.lat, p.lng];
+      resStartLatLng = [p.lat, p.lng];
+      try { localStorage.setItem('aplan_manual_obj_coords', JSON.stringify(deliveryEndLatLng)); } catch (err) {}
       buildDeliveryRoute(false);
     });
 
@@ -2138,7 +2322,7 @@
   const resCustomEndLabel = { vres: 'ВРЭС', sres: 'СРЭС' };
 
   let resLayerGroup = L.layerGroup();
-  let resStartLatLng = null;
+  let resStartLatLng = INITIAL_MANUAL_OBJ ? [...INITIAL_MANUAL_OBJ] : null;
   let resRouteCoords = [];
   let resDistRoundedKm = null;
   let resBadgeLatLng = null;
@@ -2223,6 +2407,8 @@
     resStartMarker.on('dragend', (e) => {
       const p = e.target.getLatLng();
       resStartLatLng = [p.lat, p.lng];
+      deliveryEndLatLng = [p.lat, p.lng];
+      try { localStorage.setItem('aplan_manual_obj_coords', JSON.stringify(resStartLatLng)); } catch (err) {}
       buildResRoute(false);
     });
 
