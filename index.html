@@ -920,7 +920,14 @@
       </div>
 
       <div class="section-export">
-        <div class="section-title">3. Экспорт снимка</div>
+        <div class="section-title">3. Экспорт снимка (А4, штамп 55 мм)</div>
+        <div class="field" style="margin-bottom:8px;">
+          <select id="planExportFormat">
+            <option value="a4_auto" selected>А4 Авто (под штамп 55 мм)</option>
+            <option value="a4_portrait">А4 Книжная (185×232 мм над штампом)</option>
+            <option value="a4_landscape">А4 Альбомная (штамп 185×55 справа внизу)</option>
+          </select>
+        </div>
         <button class="btn btn-neon btn-export-main" id="btnCopyImg">📷 Скопировать как картинку (+50 м)</button>
       </div>
 
@@ -2784,15 +2791,16 @@
     }
   }
 
-  // Экспорт Вкладки 1 (Ситплан +50 м)
+  // Экспорт Вкладки 1 (Ситплан +50 м под формат А4 с учётом ГОСТ-штампа 55 мм)
   document.getElementById('btnCopyImg').addEventListener('click', async () => {
     const visibleGeoms = renderedGeometries.filter(g => layerStyles[g.layer] && layerStyles[g.layer].visible);
     if (!visibleGeoms.length) { showToast('Сначала загрузите трассу', true); return; }
 
     const btn = document.getElementById('btnCopyImg');
+    const formatMode = document.getElementById('planExportFormat').value;
     const origText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '⏳ Рендеринг снимка (+50 м)...';
+    btn.textContent = '⏳ Рендеринг снимка (А4)...';
 
     try {
       let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
@@ -2806,7 +2814,8 @@
       });
 
       const marginM = 50.0;
-      const avgLatRad = ((minLat + maxLat) / 2) * Math.PI / 180;
+      const avgLat = (minLat + maxLat) / 2;
+      const avgLatRad = avgLat * Math.PI / 180;
       const dLat = marginM / 111320.0;
       const dLon = marginM / (111320.0 * Math.cos(avgLatRad));
 
@@ -2817,19 +2826,83 @@
       let usedOsmFallback = false;
       if (!exportCfg.cors) { exportCfg = basemapConfigs.osm; usedOsmFallback = true; }
 
-      let z = exportCfg.maxZoom, pxW, pxH, nw, se;
+      let z = exportCfg.maxZoom, nw, se;
       while (z >= 10) {
         nw = latLonToWorldPx(north, west, z);
         se = latLonToWorldPx(south, east, z);
-        pxW = Math.ceil(se[0] - nw[0]);
-        pxH = Math.ceil(se[1] - nw[1]);
-        if (Math.max(pxW, pxH) <= 2200) break;
+        if (Math.max(se[0] - nw[0], se[1] - nw[1]) <= 1700) break;
         z--;
       }
 
+      // 1. Габариты контента (трасса + выноски MLEADER + запас 50 м)
+      const measureCanvas = document.createElement('canvas');
+      const mCtx = measureCanvas.getContext('2d');
+      mCtx.font = '600 12px "Segoe UI", system-ui, sans-serif';
+      const metersPerPx = 156543.03392 * Math.cos(avgLatRad) / Math.pow(2, z);
+      const marginPx = Math.max(16, Math.ceil(marginM / metersPerPx));
+
+      let boxMinX = nw[0], boxMaxX = se[0], boxMinY = nw[1], boxMaxY = se[1];
+      visibleGeoms.forEach(g => {
+        if (g.type !== 'MLEADER') return;
+        const anchor = g.latlngs[g.latlngs.length - 1];
+        const [wx, wy] = latLonToWorldPx(anchor[0], anchor[1], z);
+        const textLines = (g.label || 'Выноска').split('\n');
+        const lineH = 16, padX = 7, padY = 4;
+        let maxW = 0;
+        textLines.forEach(tl => { const w = mCtx.measureText(tl).width; if (w > maxW) maxW = w; });
+        const boxW = maxW + padX * 2, boxH = textLines.length * lineH + padY * 2;
+        boxMinX = Math.min(boxMinX, wx - marginPx);
+        boxMaxX = Math.max(boxMaxX, wx + 4 + boxW + marginPx);
+        boxMinY = Math.min(boxMinY, wy - boxH / 2 - marginPx);
+        boxMaxY = Math.max(boxMaxY, wy + boxH / 2 + marginPx);
+      });
+
+      const contentW = Math.max(boxMaxX - boxMinX, 260);
+      const contentH = Math.max(boxMaxY - boxMinY, 260);
+      const contentCx = (boxMinX + boxMaxX) / 2;
+      const contentCy = (boxMinY + boxMaxY) / 2;
+
+      // 2. Выбор ориентации листа А4 (ГОСТ: поля 20 мм слева, по 5 мм сверху/справа/снизу, штамп 185×55 мм)
+      let isLandscape = false;
+      if (formatMode === 'a4_landscape') isLandscape = true;
+      else if (formatMode === 'a4_portrait') isLandscape = false;
+      else isLandscape = contentW > contentH * 1.15;
+
+      let pxW, pxH, orientLabel;
+      if (!isLandscape) {
+        // А4 Книжная: рабочая зона над штампом 185 × 232 мм (287 - 55 = 232 мм)
+        const targetRatio = 185.0 / 232.0;
+        let finalW = contentW, finalH = contentH;
+        if (finalW / finalH > targetRatio) finalH = finalW / targetRatio;
+        else finalW = finalH * targetRatio;
+        pxW = Math.max(Math.ceil(finalW), 450);
+        pxH = Math.ceil(pxW / targetRatio);
+        nw = [contentCx - pxW / 2, contentCy - pxH / 2];
+        se = [contentCx + pxW / 2, contentCy + pxH / 2];
+        orientLabel = 'А4 Книжная (185×232 мм)';
+      } else {
+        // А4 Альбомная: внутреннее поле рамки 272 × 200 мм, штамп 185 × 55 мм в правом нижнем углу
+        const frameRatio = 272.0 / 200.0;
+        const safeTopFrac = 145.0 / 200.0;  // 145 мм над штампом (200 - 55)
+        const safeLeftFrac = 87.0 / 272.0;  // 87 мм слева от штампа (272 - 185)
+
+        let finalW = contentW;
+        let finalH = Math.max(contentH / safeTopFrac, finalW / frameRatio);
+        finalW = finalH * frameRatio;
+
+        pxW = Math.max(Math.ceil(finalW), 620);
+        pxH = Math.ceil(pxW / frameRatio);
+
+        const safeCenterY = (pxH * safeTopFrac) / 2;
+        const safeCenterX = pxW * (0.5 - (1 - safeLeftFrac) * 0.08);
+        nw = [contentCx - safeCenterX, contentCy - safeCenterY];
+        se = [nw[0] + pxW, nw[1] + pxH];
+        orientLabel = 'А4 Альбомная (272×200 мм)';
+      }
+
       const canvas = document.createElement('canvas');
-      canvas.width = Math.max(pxW, 200);
-      canvas.height = Math.max(pxH, 200);
+      canvas.width = Math.max(pxW, 400);
+      canvas.height = Math.max(pxH, 300);
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2918,16 +2991,16 @@
       }
       if (copied) {
         showToast(usedOsmFallback
-          ? 'Скопировано (+50 м) на подложке OSM (Google/2ГИС блокируют экспорт)'
-          : `Картинка скопирована в буфер (${canvas.width}×${canvas.height} px, поля +50 м)`);
+          ? `${orientLabel} (+50 м) скопирован на подложке OSM`
+          : `${orientLabel} (+50 м) скопирован в буфер`);
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = (currentFileName || 'trassa').replace(/\.[^.]+$/, '') + '_plan_50m.png';
+        a.download = (currentFileName || 'trassa').replace(/\.[^.]+$/, '') + '_plan_A4_50m.png';
         a.click();
         URL.revokeObjectURL(url);
-        showToast('Картинка сохранена как PNG (+50 м)', true);
+        showToast(`${orientLabel} (+50 м) сохранён как PNG`, true);
       }
     } catch (err) {
       console.error(err);
