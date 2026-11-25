@@ -2020,19 +2020,8 @@
     L.polyline(res.coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(deliveryLayerGroup);
     L.polyline(res.coords, { color: '#2563eb', weight: 4.5, opacity: 0.95, dashArray: res.isFallback ? '10 8' : null }).addTo(deliveryLayerGroup);
 
-    const startText = document.getElementById('startLabelInput').value.trim() || 'База';
     const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
-
-    deliveryStartMarker = L.marker(deliveryStartLatLng, { icon: makePinIcon(startText, 'start'), draggable: true, zIndexOffset: 500 }).addTo(deliveryLayerGroup);
-    deliveryStartMarker.on('dragend', (e) => {
-      const p = e.target.getLatLng();
-      deliveryStartLatLng = [p.lat, p.lng];
-      try { localStorage.setItem('aplan_base_coords', JSON.stringify(deliveryStartLatLng)); } catch (err) {}
-      if (renderedGeometries.length) {
-        deliveryEndLatLng = getFarthestRoutePointLatLng(deliveryStartLatLng);
-      }
-      buildDeliveryRoute(false);
-    });
+    deliveryStartMarker = null;
 
     deliveryEndMarker = L.marker(deliveryEndLatLng, { icon: makePinIcon(endText, 'end'), draggable: true, zIndexOffset: 600 }).addTo(deliveryLayerGroup);
     deliveryEndMarker.on('dragend', (e) => {
@@ -2150,7 +2139,7 @@
     const startText = document.getElementById('resStartLabelInput').value.trim() || 'Объект';
     const endText = document.getElementById('resEndLabelInput').value.trim() || RES_CONFIG[activeResKey].name;
     resCustomEndLabel[activeResKey] = endText;
-    if (resStartMarker) resStartMarker.setIcon(makePinIcon(startText, 'start'));
+    if (resStartMarker) resStartMarker.setIcon(makePinIcon(startText, 'end'));
     if (resEndMarker) resEndMarker.setIcon(makePinIcon(endText, 'end'));
   }
   document.getElementById('resStartLabelInput').addEventListener('input', updateResLabels);
@@ -2205,24 +2194,13 @@
     L.polyline(res.coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(resLayerGroup);
     L.polyline(res.coords, { color: '#2563eb', weight: 4.5, opacity: 0.95, dashArray: res.isFallback ? '10 8' : null }).addTo(resLayerGroup);
 
-    const startText = document.getElementById('resStartLabelInput').value.trim() || 'Объект';
-    const endText = document.getElementById('resEndLabelInput').value.trim() || cfg.name;
+    const objText = document.getElementById('resStartLabelInput').value.trim() || 'Объект';
+    resEndMarker = null;
 
-    resStartMarker = L.marker(resStartLatLng, { icon: makePinIcon(startText, 'start'), draggable: true, zIndexOffset: 500 }).addTo(resLayerGroup);
+    resStartMarker = L.marker(resStartLatLng, { icon: makePinIcon(objText, 'end'), draggable: true, zIndexOffset: 600 }).addTo(resLayerGroup);
     resStartMarker.on('dragend', (e) => {
       const p = e.target.getLatLng();
       resStartLatLng = [p.lat, p.lng];
-      buildResRoute(false);
-    });
-
-    resEndMarker = L.marker(endLatLng, { icon: makePinIcon(endText, 'end'), draggable: true, zIndexOffset: 600 }).addTo(resLayerGroup);
-    resEndMarker.on('dragend', (e) => {
-      const p = e.target.getLatLng();
-      resEndCoordsMap[activeResKey] = [p.lat, p.lng];
-      try { localStorage.setItem(cfg.storageKey, JSON.stringify(resEndCoordsMap[activeResKey])); } catch (err) {}
-      if (renderedGeometries.length) {
-        resStartLatLng = getFarthestRoutePointLatLng(resEndCoordsMap[activeResKey]);
-      }
       buildResRoute(false);
     });
 
@@ -2797,16 +2775,10 @@
 
   document.getElementById('btnRef').addEventListener('click', () => {
     const wgs = mskToWgs84(1313477.9359, 480899.2898, 'msk16_z1');
-    if (refMarker) map.removeLayer(refMarker);
+    if (refMarker) { map.removeLayer(refMarker); refMarker = null; }
     if (isMobileView()) setSidebarCollapsed(true);
-    refMarker = L.marker(wgs).addTo(map).bindPopup(`
-      <div class="popup-title">Эталонная точка МСК-16 (Зона 1)</div>
-      <div>DXF (Восток, Север): <span class="popup-mono">1313477.9359, 480899.2898</span></div>
-      <div>Расчёт WGS-84: <span class="popup-mono">${wgs[0].toFixed(9)}, ${wgs[1].toFixed(9)}</span></div>
-      <div>Ожидалось: <span class="popup-mono">55.835170848, 49.246789891</span></div>
-      <div style="color:var(--ok); font-weight:700; margin-top:4px;">Погрешность: &lt; 0.001 м</div>
-    `).openPopup();
     map.setView(wgs, 19);
+    showToast(`Эталон WGS-84: ${wgs[0].toFixed(6)}, ${wgs[1].toFixed(6)}`);
   });
 
   document.getElementById('btnExportCsv').addEventListener('click', () => {
