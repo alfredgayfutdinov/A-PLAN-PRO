@@ -1007,7 +1007,14 @@
       </div>
 
       <div class="section-export">
-        <div class="section-title">2. Экспорт маршрута</div>
+        <div class="section-title">2. Экспорт маршрута (А4, штамп 55 мм)</div>
+        <div class="field" style="margin-bottom:8px;">
+          <select id="delExportFormat">
+            <option value="a4_auto" selected>А4 Авто (под штамп 55 мм)</option>
+            <option value="a4_portrait">А4 Книжная (185×232 мм над штампом)</option>
+            <option value="a4_landscape">А4 Альбомная (штамп 185×55 справа внизу)</option>
+          </select>
+        </div>
         <button class="btn btn-neon btn-export-main" id="btnCopyDeliveryImg">📷 Скопировать маршрут как картинку</button>
       </div>
 
@@ -1086,7 +1093,14 @@
       </div>
 
       <div class="section-export">
-        <div class="section-title">2. Экспорт маршрута вывоза</div>
+        <div class="section-title">2. Экспорт маршрута вывоза (А4, штамп 55 мм)</div>
+        <div class="field" style="margin-bottom:8px;">
+          <select id="resExportFormat">
+            <option value="a4_auto" selected>А4 Авто (под штамп 55 мм)</option>
+            <option value="a4_portrait">А4 Книжная (185×232 мм над штампом)</option>
+            <option value="a4_landscape">А4 Альбомная (штамп 185×55 справа внизу)</option>
+          </select>
+        </div>
         <button class="btn btn-neon btn-export-main" id="btnCopyResImg">📷 Скопировать маршрут как картинку</button>
       </div>
 
@@ -2531,8 +2545,8 @@
     ctx.closePath();
   }
 
-  // Общая функция экспорта маршрута (для Доставки и Вывоза в РЭС)
-  async function exportRouteImage({ btn, routeCoords, startLatLng, endLatLng, badgeLatLng, roundedKm, startText, endText, filePrefix }) {
+  // Общая функция экспорта маршрута под формат А4 с учётом ГОСТ-штампа 55 мм
+  async function exportRouteImage({ btn, routeCoords, startLatLng, endLatLng, badgeLatLng, roundedKm, startText, endText, filePrefix, formatMode = 'a4_auto' }) {
     if (!routeCoords.length || !startLatLng || !endLatLng) {
       showToast('Сначала постройте маршрут', true);
       return;
@@ -2540,7 +2554,7 @@
 
     const origText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '⏳ Рендеринг маршрута...';
+    btn.textContent = '⏳ Рендеринг маршрута (А4)...';
 
     try {
       let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
@@ -2553,31 +2567,29 @@
         if (lon > maxLon) maxLon = lon;
       });
 
-      const padLat = Math.max((maxLat - minLat) * 0.14, 0.0025);
-      const padLon = Math.max((maxLon - minLon) * 0.14, 0.004);
-      let south = minLat - padLat, north = maxLat + padLat;
-      let west = minLon - padLon, east = maxLon + padLon;
+      const padLat = Math.max((maxLat - minLat) * 0.08, 0.0015);
+      const padLon = Math.max((maxLon - minLon) * 0.08, 0.0022);
+      const south = minLat - padLat, north = maxLat + padLat;
+      const west = minLon - padLon, east = maxLon + padLon;
 
       let exportCfg = basemapConfigs[currentBasemapKey];
       let usedOsmFallback = false;
       if (!exportCfg.cors) { exportCfg = basemapConfigs.osm; usedOsmFallback = true; }
 
-      let z = Math.min(exportCfg.maxZoom, 16), pxW, pxH, nw, se;
+      let z = Math.min(exportCfg.maxZoom, 16), nw, se;
       while (z >= 8) {
         nw = latLonToWorldPx(north, west, z);
         se = latLonToWorldPx(south, east, z);
-        pxW = Math.ceil(se[0] - nw[0]);
-        pxH = Math.ceil(se[1] - nw[1]);
-        if (Math.max(pxW, pxH) <= 1800) break;
+        if (Math.max(se[0] - nw[0], se[1] - nw[1]) <= 1550) break;
         z--;
       }
 
-      // Расширяем границы кадра так, чтобы плашки (База, Объект, Расстояние) не обрезались + запас ~50 м
+      // 1. Габариты контента (линия маршрута + плашки База/Объект/Расстояние + запас 50 м)
       const measureCanvas = document.createElement('canvas');
       const mCtx = measureCanvas.getContext('2d');
       const avgLat = (minLat + maxLat) / 2;
       const metersPerPx = 156543.03392 * Math.cos(avgLat * Math.PI / 180) / Math.pow(2, z);
-      const marginPx = Math.max(18, Math.ceil(50 / metersPerPx));
+      const marginPx = Math.max(20, Math.ceil(50 / metersPerPx));
 
       let boxMinX = nw[0], boxMaxX = se[0], boxMinY = nw[1], boxMaxY = se[1];
 
@@ -2606,10 +2618,50 @@
         boxMaxY = Math.max(boxMaxY, wy + boxH / 2 + marginPx);
       }
 
-      nw = [boxMinX, boxMinY];
-      se = [boxMaxX, boxMaxY];
-      pxW = Math.ceil(se[0] - nw[0]);
-      pxH = Math.ceil(se[1] - nw[1]);
+      const contentW = Math.max(boxMaxX - boxMinX, 260);
+      const contentH = Math.max(boxMaxY - boxMinY, 260);
+      const contentCx = (boxMinX + boxMaxX) / 2;
+      const contentCy = (boxMinY + boxMaxY) / 2;
+
+      // 2. Выбор ориентации листа А4 (ГОСТ: поля 20 мм слева, по 5 мм сверху/справа/снизу, штамп 185×55 мм)
+      let isLandscape = false;
+      if (formatMode === 'a4_landscape') isLandscape = true;
+      else if (formatMode === 'a4_portrait') isLandscape = false;
+      else isLandscape = contentW > contentH * 1.15;
+
+      let pxW, pxH, orientLabel;
+      if (!isLandscape) {
+        // А4 Книжная: рабочая зона над штампом 185 × 232 мм (287 - 55 = 232 мм)
+        const targetRatio = 185.0 / 232.0;
+        let finalW = contentW, finalH = contentH;
+        if (finalW / finalH > targetRatio) finalH = finalW / targetRatio;
+        else finalW = finalH * targetRatio;
+        pxW = Math.max(Math.ceil(finalW), 450);
+        pxH = Math.ceil(pxW / targetRatio);
+        nw = [contentCx - pxW / 2, contentCy - pxH / 2];
+        se = [contentCx + pxW / 2, contentCy + pxH / 2];
+        orientLabel = 'А4 Книжная (185×232 мм)';
+      } else {
+        // А4 Альбомная: внутреннее поле рамки 272 × 200 мм, штамп 185 × 55 мм в правом нижнем углу
+        const frameRatio = 272.0 / 200.0;
+        const safeTopFrac = 145.0 / 200.0;  // 145 мм над штампом (200 - 55)
+        const safeLeftFrac = 87.0 / 272.0;  // 87 мм слева от штампа (272 - 185)
+
+        // Вписываем контент в верхнюю зону (272 × 145 мм), чтобы нижние 55 мм оставались свободными под штамп
+        let finalW = contentW;
+        let finalH = Math.max(contentH / safeTopFrac, finalW / frameRatio);
+        finalW = finalH * frameRatio;
+
+        pxW = Math.max(Math.ceil(finalW), 620);
+        pxH = Math.ceil(pxW / frameRatio);
+
+        // Центрируем контент в верхней безопасной зоне (0 .. safeTopFrac * pxH), а по X слегка смещаем влево от штампа
+        const safeCenterY = (pxH * safeTopFrac) / 2;
+        const safeCenterX = pxW * (0.5 - (1 - safeLeftFrac) * 0.08);
+        nw = [contentCx - safeCenterX, contentCy - safeCenterY];
+        se = [nw[0] + pxW, nw[1] + pxH];
+        orientLabel = 'А4 Альбомная (272×200 мм)';
+      }
 
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(pxW, 400);
@@ -2712,8 +2764,8 @@
       }
       if (copied) {
         showToast(usedOsmFallback
-          ? `Маршрут (${roundedKm} км) скопирован на подложке OSM`
-          : `Маршрут (${roundedKm} км) скопирован в буфер`);
+          ? `${orientLabel} • ${roundedKm} км скопирован на подложке OSM`
+          : `${orientLabel} • ${roundedKm} км скопирован в буфер`);
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -2721,7 +2773,7 @@
         a.download = `${filePrefix}_${roundedKm}km.png`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast(`Маршрут (${roundedKm} км) сохранён как PNG`, true);
+        showToast(`${orientLabel} • ${roundedKm} км сохранён как PNG`, true);
       }
     } catch (err) {
       console.error(err);
@@ -2897,7 +2949,8 @@
       roundedKm: deliveryDistRoundedKm,
       startText: document.getElementById('startLabelInput').value.trim() || 'База',
       endText: document.getElementById('endLabelInput').value.trim() || 'Объект',
-      filePrefix: 'dostavka'
+      filePrefix: 'dostavka_A4',
+      formatMode: document.getElementById('delExportFormat').value
     });
   });
 
@@ -2912,7 +2965,8 @@
       roundedKm: resDistRoundedKm,
       startText: document.getElementById('resStartLabelInput').value.trim() || 'Объект',
       endText: document.getElementById('resEndLabelInput').value.trim() || RES_CONFIG[activeResKey].name,
-      filePrefix: `vyvoz_${activeResKey}`
+      filePrefix: `vyvoz_${activeResKey}_A4`,
+      formatMode: document.getElementById('resExportFormat').value
     });
   });
 
