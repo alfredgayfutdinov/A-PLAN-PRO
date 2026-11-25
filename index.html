@@ -2553,10 +2553,10 @@
         if (lon > maxLon) maxLon = lon;
       });
 
-      const padLat = Math.max((maxLat - minLat) * 0.18, 0.004);
-      const padLon = Math.max((maxLon - minLon) * 0.22, 0.008);
-      const south = minLat - padLat, north = maxLat + padLat;
-      const west = minLon - padLon, east = maxLon + padLon;
+      const padLat = Math.max((maxLat - minLat) * 0.14, 0.0025);
+      const padLon = Math.max((maxLon - minLon) * 0.14, 0.004);
+      let south = minLat - padLat, north = maxLat + padLat;
+      let west = minLon - padLon, east = maxLon + padLon;
 
       let exportCfg = basemapConfigs[currentBasemapKey];
       let usedOsmFallback = false;
@@ -2571,6 +2571,45 @@
         if (Math.max(pxW, pxH) <= 1800) break;
         z--;
       }
+
+      // Расширяем границы кадра так, чтобы плашки (База, Объект, Расстояние) не обрезались + запас ~50 м
+      const measureCanvas = document.createElement('canvas');
+      const mCtx = measureCanvas.getContext('2d');
+      const avgLat = (minLat + maxLat) / 2;
+      const metersPerPx = 156543.03392 * Math.cos(avgLat * Math.PI / 180) / Math.pow(2, z);
+      const marginPx = Math.max(18, Math.ceil(50 / metersPerPx));
+
+      let boxMinX = nw[0], boxMaxX = se[0], boxMinY = nw[1], boxMaxY = se[1];
+
+      function expandForPinLabel(latlng, text) {
+        const [wx, wy] = latLonToWorldPx(latlng[0], latlng[1], z);
+        mCtx.font = '700 14px "Segoe UI", system-ui, sans-serif';
+        const boxW = mCtx.measureText(text).width + 18;
+        const boxH = 26;
+        boxMinX = Math.min(boxMinX, wx - 12 - marginPx);
+        boxMaxX = Math.max(boxMaxX, wx + 14 + boxW + marginPx);
+        boxMinY = Math.min(boxMinY, wy - boxH / 2 - marginPx);
+        boxMaxY = Math.max(boxMaxY, wy + boxH / 2 + marginPx);
+      }
+
+      expandForPinLabel(startLatLng, startText);
+      expandForPinLabel(endLatLng, endText);
+
+      if (badgeLatLng && roundedKm !== null) {
+        const [wx, wy] = latLonToWorldPx(badgeLatLng[0], badgeLatLng[1], z);
+        mCtx.font = '700 15px "Segoe UI", system-ui, sans-serif';
+        const boxW = mCtx.measureText(`Расстояние: ${roundedKm} км`).width + 24;
+        const boxH = 32;
+        boxMinX = Math.min(boxMinX, wx - boxW / 2 - marginPx);
+        boxMaxX = Math.max(boxMaxX, wx + boxW / 2 + marginPx);
+        boxMinY = Math.min(boxMinY, wy - boxH / 2 - marginPx);
+        boxMaxY = Math.max(boxMaxY, wy + boxH / 2 + marginPx);
+      }
+
+      nw = [boxMinX, boxMinY];
+      se = [boxMaxX, boxMaxY];
+      pxW = Math.ceil(se[0] - nw[0]);
+      pxH = Math.ceil(se[1] - nw[1]);
 
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(pxW, 400);
