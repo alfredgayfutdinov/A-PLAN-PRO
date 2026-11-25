@@ -2020,8 +2020,19 @@
     L.polyline(res.coords, { color: '#ffffff', weight: 7.5, opacity: 0.9 }).addTo(deliveryLayerGroup);
     L.polyline(res.coords, { color: '#2563eb', weight: 4.5, opacity: 0.95, dashArray: res.isFallback ? '10 8' : null }).addTo(deliveryLayerGroup);
 
+    const startText = document.getElementById('startLabelInput').value.trim() || 'База';
     const endText = document.getElementById('endLabelInput').value.trim() || 'Объект';
-    deliveryStartMarker = null;
+
+    deliveryStartMarker = L.marker(deliveryStartLatLng, { icon: makePinIcon(startText, 'start'), draggable: true, zIndexOffset: 500 }).addTo(deliveryLayerGroup);
+    deliveryStartMarker.on('dragend', (e) => {
+      const p = e.target.getLatLng();
+      deliveryStartLatLng = [p.lat, p.lng];
+      try { localStorage.setItem('aplan_base_coords', JSON.stringify(deliveryStartLatLng)); } catch (err) {}
+      if (renderedGeometries.length) {
+        deliveryEndLatLng = getFarthestRoutePointLatLng(deliveryStartLatLng);
+      }
+      buildDeliveryRoute(false);
+    });
 
     deliveryEndMarker = L.marker(deliveryEndLatLng, { icon: makePinIcon(endText, 'end'), draggable: true, zIndexOffset: 600 }).addTo(deliveryLayerGroup);
     deliveryEndMarker.on('dragend', (e) => {
@@ -2140,7 +2151,7 @@
     const endText = document.getElementById('resEndLabelInput').value.trim() || RES_CONFIG[activeResKey].name;
     resCustomEndLabel[activeResKey] = endText;
     if (resStartMarker) resStartMarker.setIcon(makePinIcon(startText, 'end'));
-    if (resEndMarker) resEndMarker.setIcon(makePinIcon(endText, 'end'));
+    if (resEndMarker) resEndMarker.setIcon(makePinIcon(endText, 'start'));
   }
   document.getElementById('resStartLabelInput').addEventListener('input', updateResLabels);
   document.getElementById('resEndLabelInput').addEventListener('input', updateResLabels);
@@ -2195,7 +2206,18 @@
     L.polyline(res.coords, { color: '#2563eb', weight: 4.5, opacity: 0.95, dashArray: res.isFallback ? '10 8' : null }).addTo(resLayerGroup);
 
     const objText = document.getElementById('resStartLabelInput').value.trim() || 'Объект';
-    resEndMarker = null;
+    const resText = document.getElementById('resEndLabelInput').value.trim() || cfg.name;
+
+    resEndMarker = L.marker(endLatLng, { icon: makePinIcon(resText, 'start'), draggable: true, zIndexOffset: 500 }).addTo(resLayerGroup);
+    resEndMarker.on('dragend', (e) => {
+      const p = e.target.getLatLng();
+      resEndCoordsMap[activeResKey] = [p.lat, p.lng];
+      try { localStorage.setItem(cfg.storageKey, JSON.stringify(resEndCoordsMap[activeResKey])); } catch (err) {}
+      if (renderedGeometries.length) {
+        resStartLatLng = getFarthestRoutePointLatLng(resEndCoordsMap[activeResKey]);
+      }
+      buildResRoute(false);
+    });
 
     resStartMarker = L.marker(resStartLatLng, { icon: makePinIcon(objText, 'end'), draggable: true, zIndexOffset: 600 }).addTo(resLayerGroup);
     resStartMarker.on('dragend', (e) => {
