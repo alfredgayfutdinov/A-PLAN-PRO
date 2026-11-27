@@ -920,12 +920,15 @@
       </div>
 
       <div class="section-export">
-        <div class="section-title">3. Экспорт снимка (А4, штамп 55 мм)</div>
+        <div class="section-title">3. Экспорт снимка (А4 / А3, штамп 55 мм)</div>
         <div class="field" style="margin-bottom:8px;">
           <select id="planExportFormat">
             <option value="a4_auto" selected>А4 Авто (под штамп 55 мм)</option>
             <option value="a4_portrait">А4 Книжная (185×232 мм над штампом)</option>
             <option value="a4_landscape">А4 Альбомная (штамп 185×55 справа внизу)</option>
+            <option value="a3_auto">А3 Авто (под штамп 55 мм)</option>
+            <option value="a3_landscape">А3 Альбомная (395×287 мм, штамп справа)</option>
+            <option value="a3_portrait">А3 Книжная (272×355 мм над штампом)</option>
           </select>
         </div>
         <button class="btn btn-neon btn-export-main" id="btnCopyImg">📷 Скопировать как картинку (+50 м)</button>
@@ -1014,12 +1017,15 @@
       </div>
 
       <div class="section-export">
-        <div class="section-title">2. Экспорт маршрута (А4, штамп 55 мм)</div>
+        <div class="section-title">2. Экспорт маршрута (А4 / А3, штамп 55 мм)</div>
         <div class="field" style="margin-bottom:8px;">
           <select id="delExportFormat">
             <option value="a4_auto" selected>А4 Авто (под штамп 55 мм)</option>
             <option value="a4_portrait">А4 Книжная (185×232 мм над штампом)</option>
             <option value="a4_landscape">А4 Альбомная (штамп 185×55 справа внизу)</option>
+            <option value="a3_auto">А3 Авто (под штамп 55 мм)</option>
+            <option value="a3_landscape">А3 Альбомная (395×287 мм, штамп справа)</option>
+            <option value="a3_portrait">А3 Книжная (272×355 мм над штампом)</option>
           </select>
         </div>
         <button class="btn btn-neon btn-export-main" id="btnCopyDeliveryImg">📷 Скопировать маршрут как картинку</button>
@@ -1100,12 +1106,15 @@
       </div>
 
       <div class="section-export">
-        <div class="section-title">2. Экспорт маршрута вывоза (А4, штамп 55 мм)</div>
+        <div class="section-title">2. Экспорт маршрута вывоза (А4 / А3, штамп 55 мм)</div>
         <div class="field" style="margin-bottom:8px;">
           <select id="resExportFormat">
             <option value="a4_auto" selected>А4 Авто (под штамп 55 мм)</option>
             <option value="a4_portrait">А4 Книжная (185×232 мм над штампом)</option>
             <option value="a4_landscape">А4 Альбомная (штамп 185×55 справа внизу)</option>
+            <option value="a3_auto">А3 Авто (под штамп 55 мм)</option>
+            <option value="a3_landscape">А3 Альбомная (395×287 мм, штамп справа)</option>
+            <option value="a3_portrait">А3 Книжная (272×355 мм над штампом)</option>
           </select>
         </div>
         <button class="btn btn-neon btn-export-main" id="btnCopyResImg">📷 Скопировать маршрут как картинку</button>
@@ -1928,6 +1937,9 @@
       shape.addTo(layerGroups[lname]);
     });
 
+    Object.values(layerGroups).forEach(lg => {
+      if (map.hasLayer(lg) && typeof lg.bringToFront === 'function') lg.bringToFront();
+    });
     lastPlanLenText = `${totalLen.toFixed(1)} м`;
     document.getElementById('dFile').textContent = currentFileName || '—';
     document.getElementById('dCount').textContent = `${parsedEntities.length} / ${totalVerts}`;
@@ -2552,16 +2564,75 @@
     ctx.closePath();
   }
 
-  // Общая функция экспорта маршрута под формат А4 с учётом ГОСТ-штампа 55 мм
+  function computeGostSheetLayout({ formatMode, contentW, contentH, contentCx, contentCy, minPxPortrait, minPxLandscape }) {
+    const isA3 = formatMode.startsWith('a3_');
+    const sheetName = isA3 ? 'А3' : 'А4';
+    // Габариты листа по ГОСТ: А4 = 210×297 мм, А3 = 297×420 мм
+    // Поля: 20 мм слева (подшивка), 5 мм сверху, 5 мм справа, 5 мм снизу
+    const shortMm = isA3 ? 297.0 : 210.0;
+    const longMm = isA3 ? 420.0 : 297.0;
+    const stampW = 185.0;
+    const stampH = 55.0;
+
+    let isLandscape = false;
+    if (formatMode.endsWith('_landscape')) isLandscape = true;
+    else if (formatMode.endsWith('_portrait')) isLandscape = false;
+    else isLandscape = contentW > contentH * 1.15;
+
+    let pxW, pxH, nw, se, orientLabel;
+    if (!isLandscape) {
+      // Книжная ориентация: внутреннее поле (shortMm - 25) × (longMm - 10), штамп 185×55 мм снизу
+      const frameW = shortMm - 25.0; // А4: 185 мм, А3: 272 мм
+      const frameH = longMm - 10.0;  // А4: 287 мм, А3: 410 мм
+      const safeH = frameH - stampH; // А4: 232 мм, А3: 355 мм
+      const targetRatio = frameW / safeH;
+
+      let finalW = contentW, finalH = contentH;
+      if (finalW / finalH > targetRatio) finalH = finalW / targetRatio;
+      else finalW = finalH * targetRatio;
+
+      pxW = Math.max(Math.ceil(finalW), minPxPortrait);
+      pxH = Math.ceil(pxW / targetRatio);
+      nw = [contentCx - pxW / 2, contentCy - pxH / 2];
+      se = [contentCx + pxW / 2, contentCy + pxH / 2];
+      orientLabel = `${sheetName} Книжная (${Math.round(frameW)}×${Math.round(safeH)} мм)`;
+    } else {
+      // Альбомная ориентация: внутреннее поле (longMm - 25) × (shortMm - 10), штамп 185×55 мм в правом нижнем углу
+      const frameW = longMm - 25.0;  // А4: 272 мм, А3: 395 мм
+      const frameH = shortMm - 10.0; // А4: 200 мм, А3: 287 мм
+      const frameRatio = frameW / frameH;
+      const safeTopFrac = (frameH - stampH) / frameH;  // А4: 145/200, А3: 232/287
+      const safeLeftFrac = (frameW - stampW) / frameW; // А4: 87/272,  А3: 210/395
+
+      let finalW = contentW;
+      let finalH = Math.max(contentH / safeTopFrac, finalW / frameRatio);
+      finalW = finalH * frameRatio;
+
+      pxW = Math.max(Math.ceil(finalW), minPxLandscape);
+      pxH = Math.ceil(pxW / frameRatio);
+
+      const safeCenterY = (pxH * safeTopFrac) / 2;
+      const safeCenterX = pxW * (0.5 - (1 - safeLeftFrac) * 0.08);
+      nw = [contentCx - safeCenterX, contentCy - safeCenterY];
+      se = [nw[0] + pxW, nw[1] + pxH];
+      orientLabel = `${sheetName} Альбомная (${Math.round(frameW)}×${Math.round(frameH)} мм)`;
+    }
+    return { isA3, sheetName, pxW, pxH, nw, se, orientLabel };
+  }
+
+  // Общая функция экспорта маршрута под формат А4 / А3 с учётом ГОСТ-штампа 55 мм
   async function exportRouteImage({ btn, routeCoords, startLatLng, endLatLng, badgeLatLng, roundedKm, startText, endText, filePrefix, formatMode = 'a4_auto' }) {
     if (!routeCoords.length || !startLatLng || !endLatLng) {
       showToast('Сначала постройте маршрут', true);
       return;
     }
 
+    const isA3Export = formatMode.startsWith('a3_');
+    const sheetTag = isA3Export ? 'А3' : 'А4';
+    const maxRouteSpanPx = isA3Export ? 2250 : 1550;
     const origText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '⏳ Рендеринг маршрута (А4)...';
+    btn.textContent = `⏳ Рендеринг маршрута (${sheetTag})...`;
 
     try {
       let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
@@ -2583,11 +2654,11 @@
       let usedOsmFallback = false;
       if (!exportCfg.cors) { exportCfg = basemapConfigs.osm; usedOsmFallback = true; }
 
-      let z = Math.min(exportCfg.maxZoom, 16), nw, se;
+      let z = Math.min(exportCfg.maxZoom, isA3Export ? 17 : 16), nw, se;
       while (z >= 8) {
         nw = latLonToWorldPx(north, west, z);
         se = latLonToWorldPx(south, east, z);
-        if (Math.max(se[0] - nw[0], se[1] - nw[1]) <= 1550) break;
+        if (Math.max(se[0] - nw[0], se[1] - nw[1]) <= maxRouteSpanPx) break;
         z--;
       }
 
@@ -2630,45 +2701,19 @@
       const contentCx = (boxMinX + boxMaxX) / 2;
       const contentCy = (boxMinY + boxMaxY) / 2;
 
-      // 2. Выбор ориентации листа А4 (ГОСТ: поля 20 мм слева, по 5 мм сверху/справа/снизу, штамп 185×55 мм)
-      let isLandscape = false;
-      if (formatMode === 'a4_landscape') isLandscape = true;
-      else if (formatMode === 'a4_portrait') isLandscape = false;
-      else isLandscape = contentW > contentH * 1.15;
-
-      let pxW, pxH, orientLabel;
-      if (!isLandscape) {
-        // А4 Книжная: рабочая зона над штампом 185 × 232 мм (287 - 55 = 232 мм)
-        const targetRatio = 185.0 / 232.0;
-        let finalW = contentW, finalH = contentH;
-        if (finalW / finalH > targetRatio) finalH = finalW / targetRatio;
-        else finalW = finalH * targetRatio;
-        pxW = Math.max(Math.ceil(finalW), 450);
-        pxH = Math.ceil(pxW / targetRatio);
-        nw = [contentCx - pxW / 2, contentCy - pxH / 2];
-        se = [contentCx + pxW / 2, contentCy + pxH / 2];
-        orientLabel = 'А4 Книжная (185×232 мм)';
-      } else {
-        // А4 Альбомная: внутреннее поле рамки 272 × 200 мм, штамп 185 × 55 мм в правом нижнем углу
-        const frameRatio = 272.0 / 200.0;
-        const safeTopFrac = 145.0 / 200.0;  // 145 мм над штампом (200 - 55)
-        const safeLeftFrac = 87.0 / 272.0;  // 87 мм слева от штампа (272 - 185)
-
-        // Вписываем контент в верхнюю зону (272 × 145 мм), чтобы нижние 55 мм оставались свободными под штамп
-        let finalW = contentW;
-        let finalH = Math.max(contentH / safeTopFrac, finalW / frameRatio);
-        finalW = finalH * frameRatio;
-
-        pxW = Math.max(Math.ceil(finalW), 620);
-        pxH = Math.ceil(pxW / frameRatio);
-
-        // Центрируем контент в верхней безопасной зоне (0 .. safeTopFrac * pxH), а по X слегка смещаем влево от штампа
-        const safeCenterY = (pxH * safeTopFrac) / 2;
-        const safeCenterX = pxW * (0.5 - (1 - safeLeftFrac) * 0.08);
-        nw = [contentCx - safeCenterX, contentCy - safeCenterY];
-        se = [nw[0] + pxW, nw[1] + pxH];
-        orientLabel = 'А4 Альбомная (272×200 мм)';
-      }
+      // 2. Расчёт габаритов и ориентации листа А4 / А3 (ГОСТ: поля 20 мм слева, по 5 мм сверху/справа/снизу, штамп 185×55 мм)
+      const layout = computeGostSheetLayout({
+        formatMode,
+        contentW,
+        contentH,
+        contentCx,
+        contentCy,
+        minPxPortrait: isA3Export ? 650 : 450,
+        minPxLandscape: isA3Export ? 900 : 620
+      });
+      const { pxW, pxH, orientLabel } = layout;
+      nw = layout.nw;
+      se = layout.se;
 
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(pxW, 400);
@@ -2791,16 +2836,19 @@
     }
   }
 
-  // Экспорт Вкладки 1 (Ситплан +50 м под формат А4 с учётом ГОСТ-штампа 55 мм)
+  // Экспорт Вкладки 1 (Ситплан +50 м под формат А4 / А3 с учётом ГОСТ-штампа 55 мм)
   document.getElementById('btnCopyImg').addEventListener('click', async () => {
     const visibleGeoms = renderedGeometries.filter(g => layerStyles[g.layer] && layerStyles[g.layer].visible);
     if (!visibleGeoms.length) { showToast('Сначала загрузите трассу', true); return; }
 
     const btn = document.getElementById('btnCopyImg');
     const formatMode = document.getElementById('planExportFormat').value;
+    const isA3Export = formatMode.startsWith('a3_');
+    const sheetTag = isA3Export ? 'А3' : 'А4';
+    const maxPlanSpanPx = isA3Export ? 2450 : 1700;
     const origText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '⏳ Рендеринг снимка (А4)...';
+    btn.textContent = `⏳ Рендеринг снимка (${sheetTag})...`;
 
     try {
       let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
@@ -2830,7 +2878,7 @@
       while (z >= 10) {
         nw = latLonToWorldPx(north, west, z);
         se = latLonToWorldPx(south, east, z);
-        if (Math.max(se[0] - nw[0], se[1] - nw[1]) <= 1700) break;
+        if (Math.max(se[0] - nw[0], se[1] - nw[1]) <= maxPlanSpanPx) break;
         z--;
       }
 
@@ -2862,43 +2910,19 @@
       const contentCx = (boxMinX + boxMaxX) / 2;
       const contentCy = (boxMinY + boxMaxY) / 2;
 
-      // 2. Выбор ориентации листа А4 (ГОСТ: поля 20 мм слева, по 5 мм сверху/справа/снизу, штамп 185×55 мм)
-      let isLandscape = false;
-      if (formatMode === 'a4_landscape') isLandscape = true;
-      else if (formatMode === 'a4_portrait') isLandscape = false;
-      else isLandscape = contentW > contentH * 1.15;
-
-      let pxW, pxH, orientLabel;
-      if (!isLandscape) {
-        // А4 Книжная: рабочая зона над штампом 185 × 232 мм (287 - 55 = 232 мм)
-        const targetRatio = 185.0 / 232.0;
-        let finalW = contentW, finalH = contentH;
-        if (finalW / finalH > targetRatio) finalH = finalW / targetRatio;
-        else finalW = finalH * targetRatio;
-        pxW = Math.max(Math.ceil(finalW), 450);
-        pxH = Math.ceil(pxW / targetRatio);
-        nw = [contentCx - pxW / 2, contentCy - pxH / 2];
-        se = [contentCx + pxW / 2, contentCy + pxH / 2];
-        orientLabel = 'А4 Книжная (185×232 мм)';
-      } else {
-        // А4 Альбомная: внутреннее поле рамки 272 × 200 мм, штамп 185 × 55 мм в правом нижнем углу
-        const frameRatio = 272.0 / 200.0;
-        const safeTopFrac = 145.0 / 200.0;  // 145 мм над штампом (200 - 55)
-        const safeLeftFrac = 87.0 / 272.0;  // 87 мм слева от штампа (272 - 185)
-
-        let finalW = contentW;
-        let finalH = Math.max(contentH / safeTopFrac, finalW / frameRatio);
-        finalW = finalH * frameRatio;
-
-        pxW = Math.max(Math.ceil(finalW), 620);
-        pxH = Math.ceil(pxW / frameRatio);
-
-        const safeCenterY = (pxH * safeTopFrac) / 2;
-        const safeCenterX = pxW * (0.5 - (1 - safeLeftFrac) * 0.08);
-        nw = [contentCx - safeCenterX, contentCy - safeCenterY];
-        se = [nw[0] + pxW, nw[1] + pxH];
-        orientLabel = 'А4 Альбомная (272×200 мм)';
-      }
+      // 2. Расчёт габаритов и ориентации листа А4 / А3 (ГОСТ: поля 20 мм слева, по 5 мм сверху/справа/снизу, штамп 185×55 мм)
+      const layout = computeGostSheetLayout({
+        formatMode,
+        contentW,
+        contentH,
+        contentCx,
+        contentCy,
+        minPxPortrait: isA3Export ? 650 : 450,
+        minPxLandscape: isA3Export ? 900 : 620
+      });
+      const { pxW, pxH, orientLabel } = layout;
+      nw = layout.nw;
+      se = layout.se;
 
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(pxW, 400);
@@ -2997,7 +3021,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = (currentFileName || 'trassa').replace(/\.[^.]+$/, '') + '_plan_A4_50m.png';
+        a.download = (currentFileName || 'trassa').replace(/\.[^.]+$/, '') + `_plan_${isA3Export ? 'A3' : 'A4'}_50m.png`;
         a.click();
         URL.revokeObjectURL(url);
         showToast(`${orientLabel} (+50 м) сохранён как PNG`, true);
@@ -3022,7 +3046,7 @@
       roundedKm: deliveryDistRoundedKm,
       startText: document.getElementById('startLabelInput').value.trim() || 'База',
       endText: document.getElementById('endLabelInput').value.trim() || 'Объект',
-      filePrefix: 'dostavka_A4',
+      filePrefix: document.getElementById('delExportFormat').value.startsWith('a3_') ? 'dostavka_A3' : 'dostavka_A4',
       formatMode: document.getElementById('delExportFormat').value
     });
   });
@@ -3038,7 +3062,7 @@
       roundedKm: resDistRoundedKm,
       startText: document.getElementById('resStartLabelInput').value.trim() || 'Объект',
       endText: document.getElementById('resEndLabelInput').value.trim() || RES_CONFIG[activeResKey].name,
-      filePrefix: `vyvoz_${activeResKey}_A4`,
+      filePrefix: `vyvoz_${activeResKey}_${document.getElementById('resExportFormat').value.startsWith('a3_') ? 'A3' : 'A4'}`,
       formatMode: document.getElementById('resExportFormat').value
     });
   });
